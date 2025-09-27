@@ -4,18 +4,21 @@ import "flag"
 
 func main() {
 	var discover bool
-	flag.BoolVar(&discover, "discover", false, "Use this argument to execute a discovery on your local network")
+	var bcastAddr string
+	var timeoutSecs int
+
+	flag.BoolVar(&discover, "discover", false, "Execute a discovery on the given broadcast address")
+	flag.StringVar(&bcastAddr, "broadcast", "255.255.255.255", "Broadcast address of the bulbs' local network")
+	flag.IntVar(&timeoutSecs, "timeout", 1, "Query timeout in seconds")
 	flag.Parse()
 
-	if discover {
-		bcastAddr := "192.168.1.255"
-		queryTimeoutSecs := 1
-		conn, err := NewConnection(bcastAddr, queryTimeoutSecs)
-		if err != nil {
-			panic(err)
-		}
+	conn, err := NewConnection(bcastAddr, timeoutSecs)
+	if err != nil {
+		panic(err)
+	}
+	wiz := NewWiz(conn)
 
-		wiz := NewWiz(conn)
+	if discover {
 		wiz.Discover()
 	} else {
 		println("Nothing to do")
