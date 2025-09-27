@@ -29,13 +29,13 @@ type WizResponse struct {
 	Result WizResponseResult `json:"result"`
 }
 
-type Wiz struct {
-	connection *Connection
-}
-
 type WizLight struct {
 	MacAddress string
 	IpAddress  string
+}
+
+type Wiz struct {
+	connection *Connection
 }
 
 func NewWiz(conn *Connection) *Wiz {
