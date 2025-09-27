@@ -24,7 +24,7 @@ func NewConnection(bcastAddr string, queryTimeoutSecs int) (*Connection, error) 
 	}, nil
 }
 
-func (c *Connection) Query(message string) (*string, []byte, error) {
+func (c *Connection) Query(message []byte) (*string, []byte, error) {
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
 		return nil, nil, err
@@ -33,7 +33,7 @@ func (c *Connection) Query(message string) (*string, []byte, error) {
 
 	conn.SetDeadline(time.Now().Add(time.Duration(c.queryTimeoutSecs) * time.Second))
 
-	_, err = conn.WriteTo([]byte(message), c.bcastAddr)
+	_, err = conn.WriteTo(message, c.bcastAddr)
 	if err != nil {
 		return nil, nil, err
 	}

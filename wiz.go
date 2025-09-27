@@ -47,7 +47,7 @@ func (w *Wiz) Discover() {
 		return
 	}
 
-	srcIp, response, err := w.connection.Query(string(strGetPilot))
+	srcIp, response, err := w.connection.Query(strGetPilot)
 	if err != nil {
 		println(err.Error())
 		return
