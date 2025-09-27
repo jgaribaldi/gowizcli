@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type QueryResponse struct {
+	SourceIpAddress string
+	Response        []byte
+}
+
 type Connection struct {
 	bcastAddr        *net.UDPAddr
 	queryTimeoutSecs int
@@ -24,10 +29,10 @@ func NewConnection(bcastAddr string, queryTimeoutSecs int) (*Connection, error) 
 	}, nil
 }
 
-func (c *Connection) Query(message []byte) (*string, []byte, error) {
+func (c *Connection) Query(message []byte) (*QueryResponse, error) {
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer conn.Close()
 
@@ -35,17 +40,19 @@ func (c *Connection) Query(message []byte) (*string, []byte, error) {
 
 	_, err = conn.WriteTo(message, c.bcastAddr)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	buffer := make([]byte, 2048)
 	n, clientAddr, err := conn.ReadFrom(buffer)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	srcIpAddress := clientAddr.(*net.UDPAddr).IP.String()
-	return &srcIpAddress, buffer[:n], nil
+	return &QueryResponse{
+		SourceIpAddress: clientAddr.(*net.UDPAddr).IP.String(),
+		Response:        buffer[:n],
+	}, nil
 }
 
 const bulbPort = "38899"

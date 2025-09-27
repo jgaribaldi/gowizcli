@@ -57,13 +57,13 @@ func (w *Wiz) Discover() []WizLight {
 		return []WizLight{}
 	}
 
-	srcIp, response, err := w.connection.Query(mGetPilot)
+	queryResponse, err := w.connection.Query(mGetPilot)
 	if err != nil {
 		fmt.Printf("Error executing query over the network: %s\n", err)
 		return []WizLight{}
 	}
 	getPilotResult := WizResponse{}
-	err = json.Unmarshal(response, &getPilotResult)
+	err = json.Unmarshal(queryResponse.Response, &getPilotResult)
 	if err != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", err)
 		return []WizLight{}
@@ -73,7 +73,7 @@ func (w *Wiz) Discover() []WizLight {
 	result = make([]WizLight, 0)
 	result = append(result, WizLight{
 		MacAddress: getPilotResult.Result.Mac,
-		IpAddress:  *srcIp,
+		IpAddress:  queryResponse.SourceIpAddress,
 	})
 	return result
 }
