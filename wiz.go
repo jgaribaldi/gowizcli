@@ -1,6 +1,9 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type WizRequestParams struct {
 	Params map[string]string
@@ -37,6 +40,8 @@ func NewWiz(conn *Connection) *Wiz {
 }
 
 func (w *Wiz) Discover() {
+	fmt.Printf("Executing Wiz bulb discovery on network %s\n...", w.connection.bcastAddr)
+
 	getPilot := WizRequest{
 		Method: "getPilot",
 		Params: WizRequestParams{},
@@ -49,13 +54,13 @@ func (w *Wiz) Discover() {
 
 	srcIp, response, err := w.connection.Query(mGetPilot)
 	if err != nil {
-		println(err.Error())
+		fmt.Printf("Error executing query over the network: %s\n...", err)
 		return
 	}
 	getPilotResult := WizResponse{}
 	err = json.Unmarshal(response, &getPilotResult)
 	if err != nil {
-		println(err.Error())
+		fmt.Printf("Error unmarshalling response: %s\n...", err)
 		return
 	}
 	println(*srcIp)
