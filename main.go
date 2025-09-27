@@ -1,6 +1,9 @@
 package main
 
-import "flag"
+import (
+	"flag"
+	"fmt"
+)
 
 func main() {
 	var discover bool
@@ -19,7 +22,10 @@ func main() {
 	wiz := NewWiz(conn)
 
 	if discover {
-		wiz.Discover()
+		lights := wiz.Discover()
+		for _, light := range lights {
+			fmt.Printf("Found new light with MAC Address %s and IP Address %s\n", light.MacAddress, light.IpAddress)
+		}
 	} else {
 		println("Nothing to do")
 	}

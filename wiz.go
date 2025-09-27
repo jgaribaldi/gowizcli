@@ -33,14 +33,19 @@ type Wiz struct {
 	connection *Connection
 }
 
+type WizLight struct {
+	MacAddress string
+	IpAddress  string
+}
+
 func NewWiz(conn *Connection) *Wiz {
 	return &Wiz{
 		connection: conn,
 	}
 }
 
-func (w *Wiz) Discover() {
-	fmt.Printf("Executing Wiz bulb discovery on network %s\n...", w.connection.bcastAddr)
+func (w *Wiz) Discover() []WizLight {
+	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", w.connection.bcastAddr)
 
 	getPilot := WizRequest{
 		Method: "getPilot",
@@ -49,22 +54,28 @@ func (w *Wiz) Discover() {
 	mGetPilot, err := json.Marshal(getPilot)
 	if err != nil {
 		println(err.Error())
-		return
+		return []WizLight{}
 	}
 
 	srcIp, response, err := w.connection.Query(mGetPilot)
 	if err != nil {
 		fmt.Printf("Error executing query over the network: %s\n...", err)
-		return
+		return []WizLight{}
 	}
 	getPilotResult := WizResponse{}
 	err = json.Unmarshal(response, &getPilotResult)
 	if err != nil {
 		fmt.Printf("Error unmarshalling response: %s\n...", err)
-		return
+		return []WizLight{}
 	}
-	println(*srcIp)
-	println(getPilotResult.Result.Mac)
+
+	var result []WizLight
+	result = make([]WizLight, 0)
+	result = append(result, WizLight{
+		MacAddress: getPilotResult.Result.Mac,
+		IpAddress:  *srcIp,
+	})
+	return result
 }
 
 func (w *Wiz) TurnOn() {
