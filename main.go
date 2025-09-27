@@ -1,17 +1,25 @@
 package main
 
-func main() {
-	println("gowizcli")
+import "flag"
 
-	bcastAddr := "192.168.1.255"
-	queryTimeoutSecs := 1
-	conn, err := NewConnection(bcastAddr, queryTimeoutSecs)
-	if err != nil {
-		panic(err)
+func main() {
+	var discover bool
+	flag.BoolVar(&discover, "discover", false, "Use this argument to execute a discovery on your local network")
+	flag.Parse()
+
+	if discover {
+		bcastAddr := "192.168.1.255"
+		queryTimeoutSecs := 1
+		conn, err := NewConnection(bcastAddr, queryTimeoutSecs)
+		if err != nil {
+			panic(err)
+		}
+
+		wiz := NewWiz(conn)
+		wiz.Discover()
+	} else {
+		println("Nothing to do")
 	}
 
-	wiz := NewWiz(conn)
-	wiz.Discover()
-	println("that's all folks!")
+	println("Goodbye!")
 }
-
