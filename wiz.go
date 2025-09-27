@@ -30,15 +30,10 @@ type Wiz struct {
 	connection *Connection
 }
 
-func NewWiz(bcastAddr string, queryTimeoutSecs int) (*Wiz, error) {
-	conn, err := NewConnection(bcastAddr, queryTimeoutSecs)
-	if err != nil {
-		return nil, err
-	}
-
+func NewWiz(conn *Connection) *Wiz {
 	return &Wiz{
 		connection: conn,
-	}, nil
+	}
 }
 
 func (w *Wiz) Discover() {
