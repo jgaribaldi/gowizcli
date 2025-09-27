@@ -41,13 +41,13 @@ func (w *Wiz) Discover() {
 		Method: "getPilot",
 		Params: WizRequestParams{},
 	}
-	strGetPilot, err := json.Marshal(getPilot)
+	mGetPilot, err := json.Marshal(getPilot)
 	if err != nil {
 		println(err.Error())
 		return
 	}
 
-	srcIp, response, err := w.connection.Query(strGetPilot)
+	srcIp, response, err := w.connection.Query(mGetPilot)
 	if err != nil {
 		println(err.Error())
 		return
