@@ -53,7 +53,7 @@ func (w *Wiz) Discover() []WizLight {
 	}
 	mGetPilot, err := json.Marshal(getPilot)
 	if err != nil {
-		println(err.Error())
+		fmt.Printf("Error marshalling request: %s\n", err)
 		return []WizLight{}
 	}
 
