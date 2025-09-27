@@ -59,13 +59,13 @@ func (w *Wiz) Discover() []WizLight {
 
 	srcIp, response, err := w.connection.Query(mGetPilot)
 	if err != nil {
-		fmt.Printf("Error executing query over the network: %s\n...", err)
+		fmt.Printf("Error executing query over the network: %s\n", err)
 		return []WizLight{}
 	}
 	getPilotResult := WizResponse{}
 	err = json.Unmarshal(response, &getPilotResult)
 	if err != nil {
-		fmt.Printf("Error unmarshalling response: %s\n...", err)
+		fmt.Printf("Error unmarshalling response: %s\n", err)
 		return []WizLight{}
 	}
 
