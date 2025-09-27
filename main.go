@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	wiz := NewWiz(conn)
+	wiz := NewWiz(conn.Query, bcastAddr)
 
 	if discover {
 		lights := wiz.Discover()

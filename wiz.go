@@ -35,17 +35,19 @@ type WizLight struct {
 }
 
 type Wiz struct {
-	connection *Connection
-}
+	query            func(message []byte) (*QueryResponse, error)
+	broadcastAddress string
+} 
 
-func NewWiz(conn *Connection) *Wiz {
+func NewWiz(query func(message []byte) (*QueryResponse, error), broadcastAddress string) *Wiz {
 	return &Wiz{
-		connection: conn,
-	}
+		query:            query,
+		broadcastAddress: broadcastAddress,
+	}           
 }
 
 func (w *Wiz) Discover() []WizLight {
-	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", w.connection.bcastAddr)
+	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", w.broadcastAddress)
 
 	getPilot := WizRequest{
 		Method: "getPilot",
@@ -57,7 +59,7 @@ func (w *Wiz) Discover() []WizLight {
 		return []WizLight{}
 	}
 
-	queryResponse, err := w.connection.Query(mGetPilot)
+	queryResponse, err := w.query(mGetPilot)
 	if err != nil {
 		fmt.Printf("Error executing query over the network: %s\n", err)
 		return []WizLight{}
