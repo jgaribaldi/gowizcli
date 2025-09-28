@@ -20,12 +20,15 @@ func TestWizDiscover(t *testing.T) {
 	}
 
 	for idx, tt := range tests {
-		wiz := NewWiz(func(message []byte) (*QueryResponse, error) {
-			return &tt.response, nil
+		wiz := NewWiz(func(message []byte) ([]QueryResponse, error) {
+			var response []QueryResponse
+			response = make([]QueryResponse, 0)
+			response = append(response, tt.response)
+			return response, nil
 		}, "192.168.1.255")
 
 		t.Run(fmt.Sprintf("Test %d", idx+1), func(t *testing.T) {
-			got := wiz.Discover()
+			got, _ := wiz.Discover()
 
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Got %s but want %s\n", got, tt.want)

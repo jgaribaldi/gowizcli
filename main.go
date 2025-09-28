@@ -22,7 +22,10 @@ func main() {
 	wiz := NewWiz(conn.Query, bcastAddr)
 
 	if discover {
-		lights := wiz.Discover()
+		lights, err := wiz.Discover()
+		if err != nil {
+			panic(err)
+		}
 		for _, light := range lights {
 			fmt.Printf("Found new light with MAC Address %s and IP Address %s\n", light.MacAddress, light.IpAddress)
 		}
