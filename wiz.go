@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type WizRequestParams struct {
@@ -30,6 +32,7 @@ type WizResponse struct {
 }
 
 type WizLight struct {
+	Id         string
 	MacAddress string
 	IpAddress  string
 }
@@ -39,7 +42,10 @@ type Wiz struct {
 	broadcastAddress string
 }
 
-func NewWiz(query func(message []byte) ([]QueryResponse, error), broadcastAddress string) *Wiz {
+func NewWiz(
+	query func(message []byte) ([]QueryResponse, error),
+	broadcastAddress string,
+) *Wiz {
 	return &Wiz{
 		query:            query,
 		broadcastAddress: broadcastAddress,
@@ -76,6 +82,7 @@ func (w *Wiz) Discover() ([]WizLight, error) {
 			fmt.Printf("Error unmarshalling response: %s\n", err)
 		} else {
 			result = append(result, WizLight{
+				Id:         uuid.New().String(),
 				MacAddress: getPilotResult.Result.Mac,
 				IpAddress:  r.SourceIpAddress,
 			})
