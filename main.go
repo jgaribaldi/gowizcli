@@ -58,6 +58,4 @@ func main() {
 	} else {
 		println("Nothing to do")
 	}
-
-	println("Goodbye!")
 }
