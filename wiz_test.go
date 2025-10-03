@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 )
 
@@ -20,17 +19,17 @@ func TestWizDiscover(t *testing.T) {
 	}
 
 	for idx, tt := range tests {
-		wiz := NewWiz(func(message []byte) ([]QueryResponse, error) {
+		wiz := NewWiz(func(ipAddress string, message []byte) ([]QueryResponse, error) {
 			var response []QueryResponse
 			response = make([]QueryResponse, 0)
 			response = append(response, tt.response)
 			return response, nil
-		}, "192.168.1.255")
+		})
 
 		t.Run(fmt.Sprintf("Test %d", idx+1), func(t *testing.T) {
-			got, _ := wiz.Discover()
+			got, _ := wiz.Discover("192.168.1.255")
 
-			if !reflect.DeepEqual(got, tt.want) {
+			if got[0].IpAddress != tt.want[0].IpAddress || got[0].MacAddress != tt.want[0].MacAddress {
 				t.Errorf("Got %s but want %s\n", got, tt.want)
 			}
 		})
