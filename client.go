@@ -5,17 +5,17 @@ import (
 	"strings"
 )
 
-type Command int
+type CommandType int
 
 const (
-	Discover Command = iota
+	Discover CommandType = iota
 	Show
 	Reset
 	TurnOn
 	TurnOff
 )
 
-var commandName = map[Command]string{
+var commandName = map[CommandType]string{
 	Discover: "discover",
 	Show:     "show",
 	Reset:    "reset",
@@ -23,7 +23,7 @@ var commandName = map[Command]string{
 	TurnOff:  "off",
 }
 
-var commandMap = map[string]Command{
+var commandMap = map[string]CommandType{
 	"discover": Discover,
 	"show":     Show,
 	"reset":    Reset,
@@ -31,13 +31,18 @@ var commandMap = map[string]Command{
 	"off":      TurnOff,
 }
 
-func (c Command) String() string {
+func (c CommandType) String() string {
 	return commandName[c]
 }
 
-func ParseString(str string) (Command, bool) {
+func ParseString(str string) (CommandType, bool) {
 	c, ok := commandMap[strings.ToLower(str)]
 	return c, ok
+}
+
+type Command struct {
+	CommandType CommandType
+	Parameters  []string
 }
 
 type Client struct {
@@ -45,8 +50,8 @@ type Client struct {
 	db  *DBConnection
 }
 
-func NewClient(bcastAddr string, timeoutSecs int) (*Client, error) {
-	conn, err := NewConnection(bcastAddr, timeoutSecs)
+func NewClient(timeoutSecs int) (*Client, error) {
+	conn, err := NewConnection(timeoutSecs)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +61,7 @@ func NewClient(bcastAddr string, timeoutSecs int) (*Client, error) {
 		return nil, err
 	}
 
-	wiz := NewWiz(conn.Query, bcastAddr)
+	wiz := NewWiz(conn.Query)
 	return &Client{
 		wiz: wiz,
 		db:  db,
@@ -64,10 +69,10 @@ func NewClient(bcastAddr string, timeoutSecs int) (*Client, error) {
 }
 
 func (c Client) Execute(command Command) error {
-	switch command {
+	switch command.CommandType {
 
 	case Discover:
-		c.executeDiscover()
+		c.executeDiscover(command.Parameters[0])
 
 	case Show:
 		c.executeShow()
@@ -88,8 +93,8 @@ func (c Client) Execute(command Command) error {
 	return nil
 }
 
-func (c Client) executeDiscover() error {
-	lights, err := c.wiz.Discover()
+func (c Client) executeDiscover(bcastAddr string) error {
+	lights, err := c.wiz.Discover(bcastAddr)
 	if err != nil {
 		return err
 	}

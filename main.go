@@ -15,14 +15,22 @@ func main() {
 	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
 	flag.Parse()
 
-	client, err := NewClient(bcastAddr, timeoutSecs)
+	client, err := NewClient(timeoutSecs)
 	if err != nil {
 		panic(err)
 	}
 
-	cmd, ok := ParseString(command)
+	cmdType, ok := ParseString(command)
 	if !ok {
 		panic(fmt.Errorf("unknown command %s", command))
 	}
+
+	cmd := Command{}
+	cmd.CommandType = cmdType
+	switch cmdType {
+	case Discover:
+		cmd.Parameters = []string{bcastAddr}
+	}
+
 	client.Execute(cmd)
 }

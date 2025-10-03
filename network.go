@@ -12,31 +12,29 @@ type QueryResponse struct {
 }
 
 type Connection struct {
-	bcastAddr        *net.UDPAddr
 	queryTimeoutSecs int
 }
 
-func NewConnection(bcastAddr string, queryTimeoutSecs int) (*Connection, error) {
-	address := fmt.Sprintf("%s:%s", bcastAddr, bulbPort)
-	resolved, err := net.ResolveUDPAddr("udp4", address)
-	if err != nil {
-		return nil, err
-	}
-
+func NewConnection(queryTimeoutSecs int) (*Connection, error) {
 	return &Connection{
-		bcastAddr:        resolved,
 		queryTimeoutSecs: queryTimeoutSecs,
 	}, nil
 }
 
-func (c *Connection) Query(message []byte) ([]QueryResponse, error) {
+func (c *Connection) Query(ipAddress string, message []byte) ([]QueryResponse, error) {
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
 
-	_, err = conn.WriteTo(message, c.bcastAddr)
+	address := fmt.Sprintf("%s:%s", ipAddress, bulbPort)
+	resolved, err := net.ResolveUDPAddr("udp4", address)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = conn.WriteTo(message, resolved)
 	if err != nil {
 		return nil, err
 	}
