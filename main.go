@@ -15,12 +15,7 @@ func main() {
 	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
 	flag.Parse()
 
-	conn, err := NewConnection(bcastAddr, timeoutSecs)
-	if err != nil {
-		panic(err)
-	}
-
-	client, err := NewClient(bcastAddr, timeoutSecs, conn.Query)
+	client, err := NewClient(bcastAddr, timeoutSecs)
 	if err != nil {
 		panic(err)
 	}

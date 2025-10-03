@@ -45,11 +45,7 @@ type Client struct {
 	db  *DBConnection
 }
 
-func NewClient(
-	bcastAddr string,
-	timeoutSecs int,
-	query func(message []byte) ([]QueryResponse, error),
-) (*Client, error) {
+func NewClient(bcastAddr string, timeoutSecs int) (*Client, error) {
 	conn, err := NewConnection(bcastAddr, timeoutSecs)
 	if err != nil {
 		return nil, err
