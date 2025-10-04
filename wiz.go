@@ -46,7 +46,7 @@ func NewWiz(
 	}
 }
 
-func (w *Wiz) Discover(bcastAddr string) ([]WizLight, error) {
+func (w Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", bcastAddr)
 
 	getPilot := WizRequest{
@@ -87,7 +87,7 @@ func (w *Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 	return result, nil
 }
 
-func (w *Wiz) TurnOn(destAddr string) error {
+func (w Wiz) TurnOn(destAddr string) error {
 	fmt.Printf("Turning on bulb with IP %s...\n", destAddr)
 
 	params := make(map[string]any)
@@ -113,7 +113,7 @@ func (w *Wiz) TurnOn(destAddr string) error {
 	return nil
 }
 
-func (w *Wiz) TurnOff(destAddr string) error {
+func (w Wiz) TurnOff(destAddr string) error {
 	fmt.Printf("Turning off bulb with IP %s...\n", destAddr)
 	params := make(map[string]any)
 	params["state"] = false
