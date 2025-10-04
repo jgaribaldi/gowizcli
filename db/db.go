@@ -1,4 +1,4 @@
-package infrastructure
+package db
 
 import (
 	"fmt"
@@ -10,28 +10,28 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type DBConnection struct {
+type Connection struct {
 	db *gorm.DB
 }
 
-func NewDbConnection(filename string) (*DBConnection, error) {
+func NewConnection(filename string) (*Connection, error) {
 	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	db.AutoMigrate(&storedWizLight{})
 
-	return &DBConnection{db: db}, nil
+	return &Connection{db: db}, nil
 }
 
-func (d DBConnection) Upsert(bulb wiz.WizLight) (*wiz.WizLight, error) {
+func (c Connection) Upsert(bulb wiz.WizLight) (*wiz.WizLight, error) {
 	storedWizLight := storedWizLight{
 		ID:         bulb.Id,
 		MacAddress: bulb.MacAddress,
 		IpAddress:  bulb.IpAddress,
 	}
 
-	result := d.db.Clauses(clause.OnConflict{
+	result := c.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "mac_address"}},
 		DoUpdates: clause.AssignmentColumns([]string{"ip_address"}),
 	}).Create(&storedWizLight)
@@ -46,10 +46,10 @@ func (d DBConnection) Upsert(bulb wiz.WizLight) (*wiz.WizLight, error) {
 	}, nil
 }
 
-func (d DBConnection) FindAll() ([]wiz.WizLight, error) {
+func (c Connection) FindAll() ([]wiz.WizLight, error) {
 	var storedWizLights []storedWizLight
 	storedWizLights = make([]storedWizLight, 0)
-	queryResult := d.db.Find(&storedWizLights)
+	queryResult := c.db.Find(&storedWizLights)
 
 	if queryResult.Error != nil {
 		return nil, queryResult.Error
@@ -67,9 +67,9 @@ func (d DBConnection) FindAll() ([]wiz.WizLight, error) {
 	return result, nil
 }
 
-func (d DBConnection) Reset() {
+func (c Connection) Reset() {
 	tableName := "stored_lights"
-	d.db.Exec(fmt.Sprintf("DROP TABLE %s", tableName))
+	c.db.Exec(fmt.Sprintf("DROP TABLE %s", tableName))
 }
 
 type storedWizLight struct {
