@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gowizcli/client"
 )
 
 func main() {
@@ -15,26 +16,26 @@ func main() {
 	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
 	flag.Parse()
 
-	client, err := NewClient(timeoutSecs)
+	c, err := client.NewClient(timeoutSecs)
 	if err != nil {
 		panic(err)
 	}
 
-	cmdType, ok := ParseString(command)
+	cmdType, ok := client.ParseString(command)
 	if !ok {
 		panic(fmt.Errorf("unknown command %s", command))
 	}
 
-	cmd := Command{}
+	cmd := client.Command{}
 	cmd.CommandType = cmdType
 	switch cmdType {
-	case Discover:
+	case client.Discover:
 		cmd.Parameters = []string{destAddress}
-	case TurnOff:
+	case client.TurnOff:
 		cmd.Parameters = []string{destAddress}
-	case TurnOn:
+	case client.TurnOn:
 		cmd.Parameters = []string{destAddress}
 	}
 
-	client.Execute(cmd)
+	c.Execute(cmd)
 }
