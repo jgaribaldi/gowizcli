@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gowizcli/wiz"
 	"time"
 
 	"gorm.io/driver/sqlite"
@@ -23,7 +24,7 @@ func NewDbConnection(filename string) (*DBConnection, error) {
 	return &DBConnection{db: db}, nil
 }
 
-func (d DBConnection) Upsert(bulb WizLight) (*WizLight, error) {
+func (d DBConnection) Upsert(bulb wiz.WizLight) (*wiz.WizLight, error) {
 	storedWizLight := storedWizLight{
 		ID:         bulb.Id,
 		MacAddress: bulb.MacAddress,
@@ -38,14 +39,14 @@ func (d DBConnection) Upsert(bulb WizLight) (*WizLight, error) {
 		return nil, result.Error
 	}
 
-	return &WizLight{
+	return &wiz.WizLight{
 		Id:         storedWizLight.ID,
 		MacAddress: storedWizLight.MacAddress,
 		IpAddress:  storedWizLight.IpAddress,
 	}, nil
 }
 
-func (d DBConnection) FindAll() ([]WizLight, error) {
+func (d DBConnection) FindAll() ([]wiz.WizLight, error) {
 	var storedWizLights []storedWizLight
 	storedWizLights = make([]storedWizLight, 0)
 	queryResult := d.db.Find(&storedWizLights)
@@ -54,10 +55,10 @@ func (d DBConnection) FindAll() ([]WizLight, error) {
 		return nil, queryResult.Error
 	}
 
-	var result []WizLight
-	result = make([]WizLight, 0)
+	var result []wiz.WizLight
+	result = make([]wiz.WizLight, 0)
 	for _, l := range storedWizLights {
-		result = append(result, WizLight{
+		result = append(result, wiz.WizLight{
 			Id:         l.ID,
 			IpAddress:  l.IpAddress,
 			MacAddress: l.MacAddress,

@@ -1,16 +1,17 @@
-package main
+package wiz
 
 import (
 	"fmt"
+	"gowizcli/infrastructure"
 	"testing"
 )
 
 func TestWizDiscover(t *testing.T) {
 	var tests = []struct {
-		response QueryResponse
+		response infrastructure.QueryResponse
 		want     []WizLight
 	}{
-		{QueryResponse{
+		{infrastructure.QueryResponse{
 			SourceIpAddress: "192.168.1.174",
 			Response:        []byte("{\"method\":\"getPilot\",\"env\":\"pro\",\"result\":{\"mac\":\"cc40857ce53c\",\"rssi\":-66,\"state\":true,\"sceneId\":8,\"speed\":100,\"dimming\":100}}"),
 		}, []WizLight{
@@ -19,9 +20,9 @@ func TestWizDiscover(t *testing.T) {
 	}
 
 	for idx, tt := range tests {
-		wiz := NewWiz(func(ipAddress string, message []byte) ([]QueryResponse, error) {
-			var response []QueryResponse
-			response = make([]QueryResponse, 0)
+		wiz := NewWiz(func(ipAddress string, message []byte) ([]infrastructure.QueryResponse, error) {
+			var response []infrastructure.QueryResponse
+			response = make([]infrastructure.QueryResponse, 0)
 			response = append(response, tt.response)
 			return response, nil
 		})

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"gowizcli/infrastructure"
+	"gowizcli/wiz"
 	"strings"
 )
 
@@ -46,12 +48,12 @@ type Command struct {
 }
 
 type Client struct {
-	wiz *Wiz
+	wiz *wiz.Wiz
 	db  *DBConnection
 }
 
 func NewClient(timeoutSecs int) (*Client, error) {
-	conn, err := NewConnection(timeoutSecs)
+	conn, err := infrastructure.NewConnection(timeoutSecs)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ func NewClient(timeoutSecs int) (*Client, error) {
 		return nil, err
 	}
 
-	wiz := NewWiz(conn.Query)
+	wiz := wiz.NewWiz(conn.Query)
 	return &Client{
 		wiz: wiz,
 		db:  db,

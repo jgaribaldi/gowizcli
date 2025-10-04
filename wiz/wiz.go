@@ -1,8 +1,9 @@
-package main
+package wiz
 
 import (
 	"encoding/json"
 	"fmt"
+	"gowizcli/infrastructure"
 
 	"github.com/google/uuid"
 )
@@ -14,11 +15,11 @@ type WizLight struct {
 }
 
 type Wiz struct {
-	query func(ipAddress string, message []byte) ([]QueryResponse, error)
+	query func(ipAddress string, message []byte) ([]infrastructure.QueryResponse, error)
 }
 
 func NewWiz(
-	query func(ipAddress string, message []byte) ([]QueryResponse, error),
+	query func(ipAddress string, message []byte) ([]infrastructure.QueryResponse, error),
 ) *Wiz {
 	return &Wiz{
 		query: query,
@@ -28,11 +29,6 @@ func NewWiz(
 func (w Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", bcastAddr)
 
-	// getPilot := WizRequest{
-	// 	Id:     1,
-	// 	Method: "getPilot",
-	// 	Params: map[string]any{},
-	// }
 	getPilot := NewWizRequestBuilder().
 		WithMethod("getPilot").
 		Build()
@@ -75,11 +71,6 @@ func (w Wiz) TurnOn(destAddr string) error {
 	params := make(map[string]any)
 	params["state"] = true
 
-	// turnOn := WizRequest{
-	// 	Id:     1,
-	// 	Method: "setState",
-	// 	Params: params,
-	// }
 	turnOn := NewWizRequestBuilder().
 		WithMethod("setState").
 		WithState(true).
@@ -104,11 +95,6 @@ func (w Wiz) TurnOff(destAddr string) error {
 	params := make(map[string]any)
 	params["state"] = false
 
-	// turnOff := WizRequest{
-	// 	Id:     1,
-	// 	Method: "setState",
-	// 	Params: params,
-	// }
 	turnOff := NewWizRequestBuilder().
 		WithMethod("setState").
 		WithState(false).
