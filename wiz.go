@@ -7,13 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type WizRequestParams struct {
-	Params map[string]string
-}
-
 type WizRequest struct {
-	Method string           `json:"method"`
-	Params WizRequestParams `json:"params"`
+	Id     int            `json:"id"`
+	Method string         `json:"method"`
+	Params map[string]any `json:"params"`
 }
 
 type WizResponseResult struct {
@@ -53,8 +50,9 @@ func (w *Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", bcastAddr)
 
 	getPilot := WizRequest{
+		Id:     1,
 		Method: "getPilot",
-		Params: WizRequestParams{},
+		Params: map[string]any{},
 	}
 	mGetPilot, err := json.Marshal(getPilot)
 	if err != nil {
@@ -89,10 +87,53 @@ func (w *Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 	return result, nil
 }
 
-func (w *Wiz) TurnOn() {
+func (w *Wiz) TurnOn(destAddr string) error {
+	fmt.Printf("Turning on bulb with IP %s...\n", destAddr)
 
+	params := make(map[string]any)
+	params["state"] = true
+
+	turnOn := WizRequest{
+		Id:     1,
+		Method: "setState",
+		Params: params,
+	}
+	mTurnOn, err := json.Marshal(turnOn)
+	if err != nil {
+		fmt.Printf("Error marshalling request: %s\n", err)
+		return err
+	}
+
+	_, err = w.query(destAddr, mTurnOn)
+	if err != nil {
+		fmt.Printf("Error executing query over the network: %s\n", err)
+		return err
+	}
+
+	return nil
 }
 
-func (w *Wiz) TurnOff() {
+func (w *Wiz) TurnOff(destAddr string) error {
+	fmt.Printf("Turning off bulb with IP %s...\n", destAddr)
+	params := make(map[string]any)
+	params["state"] = false
 
+	turnOff := WizRequest{
+		Id:     1,
+		Method: "setState",
+		Params: params,
+	}
+	mTurnOff, err := json.Marshal(turnOff)
+	if err != nil {
+		fmt.Printf("Error marshalling request: %s\n", err)
+		return err
+	}
+
+	_, err = w.query(destAddr, mTurnOff)
+	if err != nil {
+		fmt.Printf("Error executing query over the network: %s\n", err)
+		return err
+	}
+
+	return nil
 }

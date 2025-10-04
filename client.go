@@ -81,10 +81,10 @@ func (c Client) Execute(command Command) error {
 		c.executeReset()
 
 	case TurnOn:
-		c.executeTurnOn()
+		c.executeTurnOn(command.Parameters[0])
 
 	case TurnOff:
-		c.executeTurnOff()
+		c.executeTurnOff(command.Parameters[0])
 
 	default:
 		return fmt.Errorf("unknown command %s", command)
@@ -129,10 +129,10 @@ func (c Client) executeReset() error {
 	return nil
 }
 
-func (c Client) executeTurnOn() error {
-	return nil
+func (c Client) executeTurnOn(destAddr string) error {
+	return c.wiz.TurnOn(destAddr)
 }
 
-func (c Client) executeTurnOff() error {
-	return nil
+func (c Client) executeTurnOff(destAddr string) error {
+	return c.wiz.TurnOff(destAddr)
 }
