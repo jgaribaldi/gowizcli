@@ -21,7 +21,7 @@ func NewConnection(queryTimeoutSecs int) (*Connection, error) {
 	}, nil
 }
 
-func (c *Connection) Query(ipAddress string, message []byte) ([]QueryResponse, error) {
+func (c Connection) Query(ipAddress string, message []byte) ([]QueryResponse, error) {
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
 		return nil, err
