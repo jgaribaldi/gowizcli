@@ -28,11 +28,14 @@ func NewWiz(
 func (w Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 	fmt.Printf("Executing Wiz bulb discovery on network %s...\n", bcastAddr)
 
-	getPilot := WizRequest{
-		Id:     1,
-		Method: "getPilot",
-		Params: map[string]any{},
-	}
+	// getPilot := WizRequest{
+	// 	Id:     1,
+	// 	Method: "getPilot",
+	// 	Params: map[string]any{},
+	// }
+	getPilot := NewWizRequestBuilder().
+		WithMethod("getPilot").
+		Build()
 	mGetPilot, err := json.Marshal(getPilot)
 	if err != nil {
 		fmt.Printf("Error marshalling request: %s\n", err)
