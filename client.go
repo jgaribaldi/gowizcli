@@ -49,16 +49,16 @@ type Command struct {
 
 type Client struct {
 	wiz *wiz.Wiz
-	db  *DBConnection
+	db  *infrastructure.DBConnection
 }
 
 func NewClient(timeoutSecs int) (*Client, error) {
-	conn, err := infrastructure.NewConnection(timeoutSecs)
+	conn, err := wiz.NewConnection(timeoutSecs)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := NewDbConnection("lights.db")
+	db, err := infrastructure.NewDbConnection("lights.db")
 	if err != nil {
 		return nil, err
 	}

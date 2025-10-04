@@ -3,7 +3,6 @@ package wiz
 import (
 	"encoding/json"
 	"fmt"
-	"gowizcli/infrastructure"
 
 	"github.com/google/uuid"
 )
@@ -15,11 +14,11 @@ type WizLight struct {
 }
 
 type Wiz struct {
-	query func(ipAddress string, message []byte) ([]infrastructure.QueryResponse, error)
+	query func(ipAddress string, message []byte) ([]QueryResponse, error)
 }
 
 func NewWiz(
-	query func(ipAddress string, message []byte) ([]infrastructure.QueryResponse, error),
+	query func(ipAddress string, message []byte) ([]QueryResponse, error),
 ) *Wiz {
 	return &Wiz{
 		query: query,
