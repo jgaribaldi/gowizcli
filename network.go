@@ -51,7 +51,7 @@ func (c *Connection) Query(ipAddress string, message []byte) ([]QueryResponse, e
 		}
 
 		n, clientAddr, err := conn.ReadFrom(buffer)
-		if ne, ok := err.(net.Error); ok && ne.Timeout() {
+		if gotTimeout(err) {
 			break
 		}
 		if err != nil {
@@ -65,6 +65,14 @@ func (c *Connection) Query(ipAddress string, message []byte) ([]QueryResponse, e
 	}
 
 	return result, nil
+}
+
+func gotTimeout(err error) bool {
+	if err != nil {
+		ne, ok := err.(net.Error)
+		return ok && ne.Timeout()
+	}
+	return false
 }
 
 const bulbPort = "38899"
