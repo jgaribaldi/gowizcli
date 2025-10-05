@@ -1,6 +1,9 @@
 package client
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type CommandType int
 
@@ -32,12 +35,26 @@ func (c CommandType) String() string {
 	return commandName[c]
 }
 
-func ParseString(str string) (CommandType, bool) {
-	c, ok := commandMap[strings.ToLower(str)]
-	return c, ok
-}
-
 type Command struct {
 	CommandType CommandType
 	Parameters  []string
+}
+
+func NewCommand(cmdName string) (*Command, error) {
+	c, ok := commandMap[strings.ToLower(cmdName)]
+	if !ok {
+		return nil, fmt.Errorf("unknown command %s", cmdName)
+	}
+
+	return &Command{
+		CommandType: c,
+		Parameters:  make([]string, 0),
+	}, nil
+}
+
+func (c *Command) AddParameters(parameters []string) {
+	switch c.CommandType {
+	case Discover, TurnOn, TurnOff:
+		c.Parameters = append(c.Parameters, parameters...)
+	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"gowizcli/client"
 )
 
@@ -21,21 +20,11 @@ func main() {
 		panic(err)
 	}
 
-	cmdType, ok := client.ParseString(command)
-	if !ok {
-		panic(fmt.Errorf("unknown command %s", command))
+	cmd, err := client.NewCommand(command)
+	if err != nil {
+		panic(err)
 	}
+	cmd.AddParameters([]string{destAddress})
 
-	cmd := client.Command{}
-	cmd.CommandType = cmdType
-	switch cmdType {
-	case client.Discover:
-		cmd.Parameters = []string{destAddress}
-	case client.TurnOff:
-		cmd.Parameters = []string{destAddress}
-	case client.TurnOn:
-		cmd.Parameters = []string{destAddress}
-	}
-
-	c.Execute(cmd)
+	c.Execute(*cmd)
 }
