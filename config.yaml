@@ -1,2 +1,6 @@
 luminance:
   ipGeolocationApiKey: IP_GEOLOCATION_APIKEY
+  ipGeolocationUrl: "https://api.ipgeolocation.io/v2/astronomy"
+  ipGeolocationQueryTimeout: 10
+  openMeteoUrl: "https://api.open-meteo.com/v1/forecast"
+  openMeteoQueryTimeout: 10

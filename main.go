@@ -11,7 +11,11 @@ import (
 
 type Config struct {
 	Luminance struct {
-		IpGeolocationApiKey string `yaml:"ipGeolocationApiKey" envconfig:"IPGEOLOCATION_APIKEY"`
+		IpGeolocationApiKey       string `yaml:"ipGeolocationApiKey" envconfig:"IPGEOLOCATION_APIKEY"`
+		IpGeolocationUrl          string `yaml:"ipGeolocationUrl"`
+		IpGeolocationQueryTimeout int    `yaml:"ipGeolocationQueryTimeout"`
+		OpenMeteoUrl              string `yaml:"openMeteoUrl"`
+		OpenMeteoQueryTimeout     int    `yaml:"openMeteoQueryTimeout"`
 	} `yaml:"luminance"`
 }
 
@@ -20,8 +24,15 @@ func main() {
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
 
-	ipGeolocation := luminance.NewIpGeolocation("https://api.ipgeolocation.io/v2/astronomy", config.Luminance.IpGeolocationApiKey, 10)
-	meteorology := luminance.NewMeteorology("https://api.open-meteo.com/v1/forecast", 10)
+	ipGeolocation := luminance.NewIpGeolocation(
+		config.Luminance.IpGeolocationUrl,
+		config.Luminance.IpGeolocationApiKey,
+		config.Luminance.IpGeolocationQueryTimeout,
+	)
+	meteorology := luminance.NewMeteorology(
+		config.Luminance.OpenMeteoUrl,
+		config.Luminance.OpenMeteoQueryTimeout,
+	)
 	luminance := luminance.NewLuminance(ipGeolocation, meteorology)
 
 	result, err := luminance.CalculateOutsideLuminance()
