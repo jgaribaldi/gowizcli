@@ -14,7 +14,7 @@ func TestEstimateLux_LuxZero(t *testing.T) {
 		LinkeTurbidity:       3.0,
 	}
 
-	out, _ := EstimateLux(input)
+	out := EstimateLux(input)
 
 	if out.Lux <= 0 {
 		t.Errorf("Expected Lux == 0, got: %v", out.Lux)
@@ -88,7 +88,7 @@ func TestEstimateLux_DayLight(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, _ := EstimateLux(tt.in)
+			out := EstimateLux(tt.in)
 			gotRounded := math.Round(out.Lux*10) / 10
 			if gotRounded != tt.expected.Lux {
 				t.Fatalf("got %f; expected %f", gotRounded, tt.expected.Lux)
@@ -127,7 +127,7 @@ func TestEstimateLux_Twilight(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, _ := EstimateLux(tt.in)
+			out := EstimateLux(tt.in)
 			gotRounded := math.Round(out.Lux*10) / 10
 			if gotRounded != tt.expected.Lux {
 				t.Fatalf("got %f; expected %f", gotRounded, tt.expected.Lux)

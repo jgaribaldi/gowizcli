@@ -16,23 +16,19 @@ type ModelOutput struct {
 	Lux float64
 }
 
-func EstimateLux(input ModelInput) (*ModelOutput, error) {
+func EstimateLux(input ModelInput) ModelOutput {
 	if isDaytime(input.SolarElevationDeg) {
-		result := luxForDaytime(input)
-		return &result, nil
+		return luxForDaytime(input)
 	}
 
 	if isTwilight(input.SolarElevationDeg) {
 		twilightInput := input
 		twilightInput.SolarElevationDeg = TwilightReferenceDeg
 		referenceLux := luxForDaytime(twilightInput)
-		result := luxForTwilight(input.SolarElevationDeg, referenceLux.Lux)
-		return &result, nil
+		return luxForTwilight(input.SolarElevationDeg, referenceLux.Lux)
 	}
 
-	return &ModelOutput{
-		0,
-	}, nil
+	return ModelOutput{Lux: 0}
 }
 
 func isDaytime(solarElevationDeg float64) bool {
