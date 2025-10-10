@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -26,10 +27,14 @@ func NewIpGeolocation(baseUrl string, apiKey string, timeoutSecs int) *IpGeoloca
 	}
 }
 
-func (i IpGeolocation) GetSolarElevation(location string) (*AstronomyData, error) {
+func (i IpGeolocation) GetSolarElevation(latitude, longitude float64) (*AstronomyData, error) {
+	strLat := strconv.FormatFloat(latitude, 'f', -1, 64)
+	strLong := strconv.FormatFloat(longitude, 'f', -1, 64)
+
 	q := url.Values{}
 	q.Set("apiKey", i.apiKey)
-	q.Set("location", location)
+	q.Set("lat", strLat)
+	q.Set("long", strLong)
 
 	url := fmt.Sprintf("%s?%s", i.baseUrl, q.Encode())
 	req, err := http.NewRequest("GET", url, nil)

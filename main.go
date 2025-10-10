@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gowizcli/luminance"
 	"os"
 
@@ -23,15 +24,21 @@ func main() {
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
 
-	_ = luminance.NewIpGeolocation(
+	ipGelocation := luminance.NewIpGeolocation(
 		config.Luminance.IpGeolocationUrl,
 		config.Luminance.IpGeolocationApiKey,
 		config.Luminance.IpGeolocationQueryTimeout,
 	)
-	_ = luminance.NewMeteorology(
+	meteorology := luminance.NewMeteorology(
 		config.Luminance.OpenMeteoUrl,
 		config.Luminance.OpenMeteoQueryTimeout,
 	)
+	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
+	luminance, err := orchestrator.GetCurrentLuminance(-34.60734, -58.44329)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Current luminance estimation is %f\n", luminance)
 
 	// var command string
 	// var destAddress string

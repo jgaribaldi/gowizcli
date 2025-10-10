@@ -127,3 +127,7 @@ const (
 	TwilightDecayPreDegree = 0.767528364331
 	TwilightReferenceDeg   = 0.5
 )
+
+const (
+	LinkeTurbidityDefault = 3.0
+)
