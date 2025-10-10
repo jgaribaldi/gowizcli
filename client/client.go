@@ -6,29 +6,29 @@ import (
 )
 
 type Client struct {
-	wiz            *wiz.Wiz
-	upsertLight    func(wiz.WizLight) (*wiz.WizLight, error)
-	findAllLights  func() ([]wiz.WizLight, error)
-	eraseAllLights func()
+	upsertLight       func(wiz.WizLight) (*wiz.WizLight, error)
+	findAllLights     func() ([]wiz.WizLight, error)
+	eraseAllLights    func()
+	discoverAllLights func(string) ([]wiz.WizLight, error)
+	turnOnLight       func(string) error
+	turnOffLight      func(string) error
 }
 
 func NewClient(
-	timeoutSecs int,
 	upsertLight func(wiz.WizLight) (*wiz.WizLight, error),
 	findAllLights func() ([]wiz.WizLight, error),
 	eraseAllLights func(),
+	discoverAllLights func(string) ([]wiz.WizLight, error),
+	turnOnLight func(string) error,
+	turnOffLight func(string) error,
 ) (*Client, error) {
-	conn, err := wiz.NewConnection(timeoutSecs)
-	if err != nil {
-		return nil, err
-	}
-
-	wiz := wiz.NewWiz(conn.Query)
 	return &Client{
-		wiz:            wiz,
-		upsertLight:    upsertLight,
-		findAllLights:  findAllLights,
-		eraseAllLights: eraseAllLights,
+		upsertLight:       upsertLight,
+		findAllLights:     findAllLights,
+		eraseAllLights:    eraseAllLights,
+		discoverAllLights: discoverAllLights,
+		turnOnLight:       turnOnLight,
+		turnOffLight:      turnOffLight,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (c Client) Execute(command Command) error {
 }
 
 func (c Client) executeDiscover(bcastAddr string) error {
-	lights, err := c.wiz.Discover(bcastAddr)
+	lights, err := c.discoverAllLights(bcastAddr)
 	if err != nil {
 		return err
 	}
@@ -94,9 +94,9 @@ func (c Client) executeReset() error {
 }
 
 func (c Client) executeTurnOn(destAddr string) error {
-	return c.wiz.TurnOn(destAddr)
+	return c.turnOnLight(destAddr)
 }
 
 func (c Client) executeTurnOff(destAddr string) error {
-	return c.wiz.TurnOff(destAddr)
+	return c.turnOffLight(destAddr)
 }

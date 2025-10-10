@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"gowizcli/client"
+	"gowizcli/db"
+	"gowizcli/wiz"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -59,7 +61,26 @@ func main() {
 	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
 	flag.Parse()
 
-	c, err := client.NewClient(config.Network.QueryTimeoutSec)
+	db, err := db.NewConnection("lights.db")
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err := wiz.NewConnection(config.Network.QueryTimeoutSec)
+	if err != nil {
+		panic(err)
+	}
+
+	wiz := wiz.NewWiz(conn.Query)
+
+	c, err := client.NewClient(
+		db.Upsert,
+		db.FindAll,
+		db.Reset,
+		wiz.Discover,
+		wiz.TurnOn,
+		wiz.TurnOff,
+	)
 	if err != nil {
 		panic(err)
 	}
