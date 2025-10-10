@@ -4,3 +4,6 @@ luminance:
   ipGeolocationQueryTimeout: 10
   openMeteoUrl: "https://api.open-meteo.com/v1/forecast"
   openMeteoQueryTimeout: 10
+  location:
+    latitude: -34.60734
+    longitude: -58.44329

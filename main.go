@@ -16,6 +16,10 @@ type Config struct {
 		IpGeolocationQueryTimeout int    `yaml:"ipGeolocationQueryTimeout"`
 		OpenMeteoUrl              string `yaml:"openMeteoUrl"`
 		OpenMeteoQueryTimeout     int    `yaml:"openMeteoQueryTimeout"`
+		Location                  struct {
+			Latitude  float64 `yaml:"latitude"`
+			Longitude float64 `yaml:"longitude"`
+		} `yaml:"location"`
 	} `yaml:"luminance"`
 }
 
@@ -34,7 +38,7 @@ func main() {
 		config.Luminance.OpenMeteoQueryTimeout,
 	)
 	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
-	luminance, err := orchestrator.GetCurrentLuminance(-34.60734, -58.44329)
+	luminance, err := orchestrator.GetCurrentLuminance(config.Luminance.Location.Latitude, config.Luminance.Location.Longitude)
 	if err != nil {
 		panic(err)
 	}
