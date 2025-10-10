@@ -10,6 +10,12 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+type LightsDatabase interface {
+	Upsert(bulb wiz.WizLight) (*wiz.WizLight, error)
+	FindAll() ([]wiz.WizLight, error)
+	EraseAll()
+}
+
 type Connection struct {
 	db *gorm.DB
 }
@@ -67,7 +73,7 @@ func (c Connection) FindAll() ([]wiz.WizLight, error) {
 	return result, nil
 }
 
-func (c Connection) Reset() {
+func (c Connection) EraseAll() {
 	tableName := "stored_lights"
 	c.db.Exec(fmt.Sprintf("DROP TABLE %s", tableName))
 }

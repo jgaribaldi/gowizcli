@@ -74,9 +74,7 @@ func main() {
 	wiz := wiz.NewWiz(conn.Query)
 
 	c, err := client.NewClient(
-		db.Upsert,
-		db.FindAll,
-		db.Reset,
+		db,
 		wiz.Discover,
 		wiz.TurnOn,
 		wiz.TurnOff,
