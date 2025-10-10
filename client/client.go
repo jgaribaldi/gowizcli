@@ -2,30 +2,33 @@ package client
 
 import (
 	"fmt"
-	"gowizcli/db"
 	"gowizcli/wiz"
 )
 
 type Client struct {
-	wiz *wiz.Wiz
-	db  *db.Connection
+	wiz            *wiz.Wiz
+	upsertLight    func(wiz.WizLight) (*wiz.WizLight, error)
+	findAllLights  func() ([]wiz.WizLight, error)
+	eraseAllLights func()
 }
 
-func NewClient(timeoutSecs int) (*Client, error) {
+func NewClient(
+	timeoutSecs int,
+	upsertLight func(wiz.WizLight) (*wiz.WizLight, error),
+	findAllLights func() ([]wiz.WizLight, error),
+	eraseAllLights func(),
+) (*Client, error) {
 	conn, err := wiz.NewConnection(timeoutSecs)
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := db.NewConnection("lights.db")
 	if err != nil {
 		return nil, err
 	}
 
 	wiz := wiz.NewWiz(conn.Query)
 	return &Client{
-		wiz: wiz,
-		db:  db,
+		wiz:            wiz,
+		upsertLight:    upsertLight,
+		findAllLights:  findAllLights,
+		eraseAllLights: eraseAllLights,
 	}, nil
 }
 
@@ -61,7 +64,7 @@ func (c Client) executeDiscover(bcastAddr string) error {
 	}
 	for _, light := range lights {
 		fmt.Printf("Found new light with MAC Address %s and IP Address %s\n", light.MacAddress, light.IpAddress)
-		_, err := c.db.Upsert(light)
+		_, err := c.upsertLight(light)
 		if err != nil {
 			return err
 		}
@@ -73,7 +76,7 @@ func (c Client) executeShow() error {
 	fmt.Println("Lights")
 	fmt.Println("------")
 
-	lights, err := c.db.FindAll()
+	lights, err := c.findAllLights()
 	if err != nil {
 		return err
 	}
@@ -85,7 +88,7 @@ func (c Client) executeShow() error {
 }
 
 func (c Client) executeReset() error {
-	c.db.Reset()
+	c.eraseAllLights()
 	fmt.Println("Erased all data - run a discovery to populate again")
 	return nil
 }
