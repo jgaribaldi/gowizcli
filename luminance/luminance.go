@@ -32,7 +32,7 @@ func isDaytime(solarElevationDeg float64) bool {
 func luxForDaytime(input ModelInput) ModelOutput {
 	airMass := airmassKastenYoung(input.SolarElevationDeg)
 	e0 := eccentricityFactor(input.DayOfYear)
-	ghiClear := clearSkyGHI(input.AltitudeMeters, LinkeTurbidityDefault, input.SolarElevationDeg, airMass, e0)
+	ghiClear := clearSkyGHI(input.AltitudeMeters, input.LinkeTurbidity, input.SolarElevationDeg, airMass, e0)
 	kc := cloudClearSkyIndex(input.CloudCoverPercentage)
 
 	lux := ghiClear * kc * LuminousEfficacy_LuxPerWm2
@@ -42,8 +42,12 @@ func luxForDaytime(input ModelInput) ModelOutput {
 }
 
 func airmassKastenYoung(solarElevationDeg float64) float64 {
-	solarElevationRad := radians(solarElevationDeg)
-	return 1.0 / (math.Sin(solarElevationRad) * AirMassKastenYoungA * math.Pow(AirMassKastenYoungB+(90.0-solarElevationDeg), -AirMassKastenYoungC))
+	zenithDeg := 90.0 - solarElevationDeg
+	cosZenith := math.Cos(radians(zenithDeg))
+	if cosZenith <= 0 {
+		return math.Inf(1)
+	}
+	return 1.0 / (cosZenith + AirMassKastenYoungA*math.Pow(AirMassKastenYoungB-zenithDeg, -AirMassKastenYoungC))
 }
 
 func eccentricityFactor(dayOfYear int) float64 {
@@ -83,7 +87,7 @@ const (
 
 const (
 	AirMassKastenYoungA = 0.50572
-	AirMassKastenYoungB = 6.07995
+	AirMassKastenYoungB = 96.07995
 	AirMassKastenYoungC = 1.6364
 )
 
