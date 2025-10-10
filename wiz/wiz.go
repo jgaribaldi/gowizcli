@@ -7,6 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type IWiz interface {
+	Discover(bcastAddr string) ([]WizLight, error)
+	TurnOn(destAddr string) error
+	TurnOff(destAddr string) error
+}
+
 type WizLight struct {
 	Id         string
 	MacAddress string
