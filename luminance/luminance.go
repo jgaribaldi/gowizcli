@@ -1,6 +1,8 @@
 package luminance
 
-import "math"
+import (
+	"math"
+)
 
 type ModelInput struct {
 	SolarElevationDeg    float64
@@ -20,6 +22,14 @@ func EstimateLux(input ModelInput) (*ModelOutput, error) {
 		return &result, nil
 	}
 
+	if isTwilight(input.SolarElevationDeg) {
+		twilightInput := input
+		twilightInput.SolarElevationDeg = TwilightReferenceDeg
+		referenceLux := luxForDaytime(twilightInput)
+		result := luxForTwilight(input.SolarElevationDeg, referenceLux.Lux)
+		return &result, nil
+	}
+
 	return &ModelOutput{
 		0,
 	}, nil
@@ -27,6 +37,10 @@ func EstimateLux(input ModelInput) (*ModelOutput, error) {
 
 func isDaytime(solarElevationDeg float64) bool {
 	return solarElevationDeg > 0
+}
+
+func isTwilight(solarElevationDeg float64) bool {
+	return solarElevationDeg <= 0.0 && solarElevationDeg > TwilightLowerBoundDeg
 }
 
 func luxForDaytime(input ModelInput) ModelOutput {
@@ -38,6 +52,14 @@ func luxForDaytime(input ModelInput) ModelOutput {
 	lux := ghiClear * kc * LuminousEfficacy_LuxPerWm2
 	return ModelOutput{
 		Lux: lux,
+	}
+}
+
+func luxForTwilight(solarElevationDeg, referenceLuxAtHorizon float64) ModelOutput {
+	depression := -solarElevationDeg
+	attenuation := math.Exp(-TwilightDecayPreDegree * depression)
+	return ModelOutput{
+		Lux: referenceLuxAtHorizon * attenuation,
 	}
 }
 
@@ -103,3 +125,9 @@ const (
 const ClearSkyModelPrefactor_IneichenKasten = 0.84
 
 const LuminousEfficacy_LuxPerWm2 = 120.0
+
+const (
+	TwilightLowerBoundDeg  = -6.0
+	TwilightDecayPreDegree = 0.767528364331
+	TwilightReferenceDeg   = 0.5
+)

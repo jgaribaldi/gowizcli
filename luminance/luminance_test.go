@@ -97,6 +97,45 @@ func TestEstimateLux_DayLight(t *testing.T) {
 	}
 }
 
+func TestEstimateLux_Twilight(t *testing.T) {
+	tests := []struct {
+		name     string
+		in       ModelInput
+		expected ModelOutput
+	}{
+		{
+			name:     "Twilight at horizon (0 deg), clear sky",
+			in:       dayInput(0, 0, 0, 3, 100),
+			expected: ModelOutput{Lux: 456.4},
+		},
+		{
+			name:     "Twilight -1 deg, clear sky",
+			in:       dayInput(-1, 0, 0, 3, 100),
+			expected: ModelOutput{Lux: 211.8},
+		},
+		{
+			name:     "Twilight -4 deg, overcast, altitude 500 m, Linke 4",
+			in:       dayInput(-4, 100, 500, 4, 200),
+			expected: ModelOutput{Lux: 3.9},
+		},
+		{
+			name:     "Twilight -5.9 deg, clear sky near lower bound",
+			in:       dayInput(-5.9, 0, 0, 3, 150),
+			expected: ModelOutput{Lux: 4.8},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, _ := EstimateLux(tt.in)
+			gotRounded := math.Round(out.Lux*10) / 10
+			if gotRounded != tt.expected.Lux {
+				t.Fatalf("got %f; expected %f", gotRounded, tt.expected.Lux)
+			}
+		})
+	}
+}
+
 func dayInput(solarDeg, cloudPct, altitudeM, linkeTL float64, dayOfYear int) ModelInput {
 	return ModelInput{
 		SolarElevationDeg:    solarDeg,
