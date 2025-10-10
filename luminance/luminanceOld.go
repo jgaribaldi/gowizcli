@@ -187,7 +187,3 @@ func twilightLux(sunElevationDeg float64) float64 {
 	x := sunElevationDeg - TwilightCivilStartDeg
 	return TwilightMaxLux / (1.0 + math.Exp(-TwilightShapeK*x))
 }
-
-func radians(degrees float64) float64 {
-	return degrees * math.Pi / 180
-}

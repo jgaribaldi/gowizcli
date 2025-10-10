@@ -75,6 +75,10 @@ func cloudClearSkyIndex(cloudCoverPercentage float64) float64 {
 	return 1.0 - CloudClearSkyLossCoefficient*math.Pow(cloudFraction, CloudClearSkyExponent)
 }
 
+func radians(degrees float64) float64 {
+	return degrees * math.Pi / 180
+}
+
 const SolarIrradianceExtraterrestrial_Wm2 = 1366.1
 
 const ClearSkyOpticalDepthCoeff = 0.027
