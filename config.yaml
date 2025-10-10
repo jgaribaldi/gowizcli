@@ -1,11 +1,15 @@
 luminance:
   ipGeolocation:
     apiKey: IP_GEOLOCATION_APIKEY
-    url: "https://api.ipgeolocation.io/v2/astronomy"
+    url: https://api.ipgeolocation.io/v2/astronomy
     queryTimeout: 10
   openMeteo:
-    url: "https://api.open-meteo.com/v1/forecast"
+    url: https://api.open-meteo.com/v1/forecast
     queryTimeout: 10
   location:
     latitude: -34.60734
     longitude: -58.44329
+
+network:
+  broadcastAddress: 192.168.1.255
+  queryTimeoutSec: 1
