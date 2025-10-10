@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"gowizcli/luminance"
+	"flag"
+	"gowizcli/client"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -25,6 +25,10 @@ type Config struct {
 			Longitude float64 `yaml:"longitude"`
 		} `yaml:"location"`
 	} `yaml:"luminance"`
+	Network struct {
+		BroadcastAddress string `yaml:"broadcastAddress"`
+		QueryTimeoutSec  int    `yaml:"queryTimeoutSec"`
+	} `yaml:"network"`
 }
 
 func main() {
@@ -32,43 +36,41 @@ func main() {
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
 
-	ipGelocation := luminance.NewIpGeolocation(
-		config.Luminance.IpGeolocation.Url,
-		config.Luminance.IpGeolocation.ApiKey,
-		config.Luminance.IpGeolocation.QueryTimeout,
-	)
-	meteorology := luminance.NewMeteorology(
-		config.Luminance.OpenMeteo.Url,
-		config.Luminance.OpenMeteo.QueryTimeout,
-	)
-	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
-	luminance, err := orchestrator.GetCurrentLuminance(config.Luminance.Location.Latitude, config.Luminance.Location.Longitude)
+	// ipGelocation := luminance.NewIpGeolocation(
+	// 	config.Luminance.IpGeolocation.Url,
+	// 	config.Luminance.IpGeolocation.ApiKey,
+	// 	config.Luminance.IpGeolocation.QueryTimeout,
+	// )
+	// meteorology := luminance.NewMeteorology(
+	// 	config.Luminance.OpenMeteo.Url,
+	// 	config.Luminance.OpenMeteo.QueryTimeout,
+	// )
+	// orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
+	// luminance, err := orchestrator.GetCurrentLuminance(config.Luminance.Location.Latitude, config.Luminance.Location.Longitude)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Printf("Current luminance estimation is %f\n", luminance)
+
+	var command string
+	var destAddress string
+
+	flag.StringVar(&destAddress, "address", "255.255.255.255", "Destination address of the command - Use the local broadcast address for 'discover'")
+	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
+	flag.Parse()
+
+	c, err := client.NewClient(config.Network.QueryTimeoutSec)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Current luminance estimation is %f\n", luminance)
 
-	// var command string
-	// var destAddress string
-	// var timeoutSecs int
+	cmd, err := client.NewCommand(command)
+	if err != nil {
+		panic(err)
+	}
+	cmd.AddParameters([]string{destAddress})
 
-	// flag.StringVar(&destAddress, "address", "255.255.255.255", "Destination address of the command - Use the local broadcast address for 'discover'")
-	// flag.IntVar(&timeoutSecs, "timeout", 1, "Query timeout in seconds")
-	// flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
-	// flag.Parse()
-
-	// c, err := client.NewClient(timeoutSecs)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// cmd, err := client.NewCommand(command)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// cmd.AddParameters([]string{destAddress})
-
-	// c.Execute(*cmd)
+	c.Execute(*cmd)
 }
 
 func readConfigFile(config *Config) error {
