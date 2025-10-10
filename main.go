@@ -11,12 +11,16 @@ import (
 
 type Config struct {
 	Luminance struct {
-		IpGeolocationApiKey       string `yaml:"ipGeolocationApiKey" envconfig:"IPGEOLOCATION_APIKEY"`
-		IpGeolocationUrl          string `yaml:"ipGeolocationUrl"`
-		IpGeolocationQueryTimeout int    `yaml:"ipGeolocationQueryTimeout"`
-		OpenMeteoUrl              string `yaml:"openMeteoUrl"`
-		OpenMeteoQueryTimeout     int    `yaml:"openMeteoQueryTimeout"`
-		Location                  struct {
+		IpGeolocation struct {
+			ApiKey       string `yaml:"apiKey" envconfig:"IPGEOLOCATION_APIKEY"`
+			Url          string `yaml:"url"`
+			QueryTimeout int    `yaml:"queryTimeout"`
+		} `yaml:"ipGeolocation"`
+		OpenMeteo struct {
+			Url          string `yaml:"url"`
+			QueryTimeout int    `yaml:"queryTimeout"`
+		} `yaml:"openMeteo"`
+		Location struct {
 			Latitude  float64 `yaml:"latitude"`
 			Longitude float64 `yaml:"longitude"`
 		} `yaml:"location"`
@@ -29,13 +33,13 @@ func main() {
 	readConfigEnvironment(&config)
 
 	ipGelocation := luminance.NewIpGeolocation(
-		config.Luminance.IpGeolocationUrl,
-		config.Luminance.IpGeolocationApiKey,
-		config.Luminance.IpGeolocationQueryTimeout,
+		config.Luminance.IpGeolocation.Url,
+		config.Luminance.IpGeolocation.ApiKey,
+		config.Luminance.IpGeolocation.QueryTimeout,
 	)
 	meteorology := luminance.NewMeteorology(
-		config.Luminance.OpenMeteoUrl,
-		config.Luminance.OpenMeteoQueryTimeout,
+		config.Luminance.OpenMeteo.Url,
+		config.Luminance.OpenMeteo.QueryTimeout,
 	)
 	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
 	luminance, err := orchestrator.GetCurrentLuminance(config.Luminance.Location.Latitude, config.Luminance.Location.Longitude)
