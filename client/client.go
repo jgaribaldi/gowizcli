@@ -7,17 +7,20 @@ import (
 )
 
 type Client struct {
-	lightsDb  db.LightsDatabase
-	wizClient wiz.WizClient
+	lightsDb     db.LightsDatabase
+	wizClient    wiz.WizClient
+	getLuminance func(float64, float64) (float64, error)
 }
 
 func NewClient(
 	lightsDb db.LightsDatabase,
 	wizClient wiz.WizClient,
+	getLuminance func(float64, float64) (float64, error),
 ) (*Client, error) {
 	return &Client{
-		lightsDb:  lightsDb,
-		wizClient: wizClient,
+		lightsDb:     lightsDb,
+		wizClient:    wizClient,
+		getLuminance: getLuminance,
 	}, nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"gowizcli/client"
 	"gowizcli/db"
+	"gowizcli/luminance"
 	"gowizcli/wiz"
 	"os"
 
@@ -41,22 +42,6 @@ func main() {
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
 
-	// ipGelocation := luminance.NewIpGeolocation(
-	// 	config.Luminance.IpGeolocation.Url,
-	// 	config.Luminance.IpGeolocation.ApiKey,
-	// 	config.Luminance.IpGeolocation.QueryTimeout,
-	// )
-	// meteorology := luminance.NewMeteorology(
-	// 	config.Luminance.OpenMeteo.Url,
-	// 	config.Luminance.OpenMeteo.QueryTimeout,
-	// )
-	// orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
-	// luminance, err := orchestrator.GetCurrentLuminance(config.Luminance.Location.Latitude, config.Luminance.Location.Longitude)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Printf("Current luminance estimation is %f\n", luminance)
-
 	var command string
 	var destAddress string
 
@@ -75,10 +60,21 @@ func main() {
 	}
 
 	wiz := wiz.NewWiz(conn.Query)
+	ipGelocation := luminance.NewIpGeolocation(
+		config.Luminance.IpGeolocation.Url,
+		config.Luminance.IpGeolocation.ApiKey,
+		config.Luminance.IpGeolocation.QueryTimeout,
+	)
+	meteorology := luminance.NewMeteorology(
+		config.Luminance.OpenMeteo.Url,
+		config.Luminance.OpenMeteo.QueryTimeout,
+	)
+	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
 
 	c, err := client.NewClient(
 		db,
 		wiz,
+		orchestrator.GetCurrentLuminance,
 	)
 	if err != nil {
 		panic(err)
