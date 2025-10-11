@@ -7,17 +7,17 @@ import (
 )
 
 type Client struct {
-	lightsDb db.LightsDatabase
-	iWiz     wiz.IWiz
+	lightsDb  db.LightsDatabase
+	wizClient wiz.WizClient
 }
 
 func NewClient(
 	lightsDb db.LightsDatabase,
-	iWiz wiz.IWiz,
+	wizClient wiz.WizClient,
 ) (*Client, error) {
 	return &Client{
-		lightsDb: lightsDb,
-		iWiz:     iWiz,
+		lightsDb:  lightsDb,
+		wizClient: wizClient,
 	}, nil
 }
 
@@ -47,7 +47,7 @@ func (c Client) Execute(command Command) error {
 }
 
 func (c Client) executeDiscover(bcastAddr string) error {
-	lights, err := c.iWiz.Discover(bcastAddr)
+	lights, err := c.wizClient.Discover(bcastAddr)
 	if err != nil {
 		return err
 	}
@@ -83,9 +83,9 @@ func (c Client) executeReset() error {
 }
 
 func (c Client) executeTurnOn(destAddr string) error {
-	return c.iWiz.TurnOn(destAddr)
+	return c.wizClient.TurnOn(destAddr)
 }
 
 func (c Client) executeTurnOff(destAddr string) error {
-	return c.iWiz.TurnOff(destAddr)
+	return c.wizClient.TurnOff(destAddr)
 }

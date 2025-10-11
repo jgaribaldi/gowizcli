@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type IWiz interface {
+type WizClient interface {
 	Discover(bcastAddr string) ([]WizLight, error)
 	TurnOn(destAddr string) error
 	TurnOff(destAddr string) error
