@@ -5,6 +5,19 @@ import (
 	"strings"
 )
 
+type Option struct {
+	Type CommandType
+	Name string
+}
+
+var Options = []Option{
+	{Discover, "Discover lights in local network"},
+	{Show, "Show the discovered lights"},
+	{Reset, "Delete all discovered lights"},
+	{TurnOn, "Turn a light on"},
+	{TurnOff, "Turn a light off"},
+}
+
 type CommandType int
 
 const (

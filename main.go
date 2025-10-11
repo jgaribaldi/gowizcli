@@ -1,24 +1,19 @@
 package main
 
 import (
-	"flag"
 	"gowizcli/client"
 	"gowizcli/db"
 	"gowizcli/luminance"
 	"gowizcli/wiz"
+	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
 	var config Config
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
-
-	var command string
-	var destAddress string
-
-	flag.StringVar(&destAddress, "address", "255.255.255.255", "Destination address of the command - Use the local broadcast address for 'discover'")
-	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
-	flag.Parse()
 
 	db, err := db.NewConnection(config.Database.File)
 	if err != nil {
@@ -51,11 +46,62 @@ func main() {
 		panic(err)
 	}
 
-	cmd, err := client.NewCommand(command)
+	p := tea.NewProgram(model{})
+	m, err := p.Run()
 	if err != nil {
 		panic(err)
 	}
-	cmd.AddParameters([]string{destAddress})
 
-	c.Execute(*cmd)
+	if m, ok := m.(model); ok && m.choice.Name != "" {
+		cmd := client.Command{CommandType: m.choice.Type}
+		c.Execute(cmd)
+	}
+}
+
+type model struct {
+	cursor int
+	choice client.Option
+}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q", "esc":
+			return m, tea.Quit
+		case "enter":
+			m.choice = client.Options[m.cursor]
+			return m, tea.Quit
+		case "down", "j":
+			m.cursor++
+			if m.cursor >= len(client.Options) {
+				m.cursor = 0
+			}
+		case "up", "k":
+			m.cursor--
+			if m.cursor < 0 {
+				m.cursor = len(client.Options) - 1
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	s := strings.Builder{}
+	s.WriteString("Welcome to gowizcli! A Wiz lights client written in Go. Pick a command:\n\n")
+	for i, c := range client.Options {
+		if m.cursor == i {
+			s.WriteString("(•) ")
+		} else {
+			s.WriteString("( ) ")
+		}
+		s.WriteString(c.Name)
+		s.WriteString("\n")
+	}
+	return s.String()
 }
