@@ -75,9 +75,7 @@ func main() {
 
 	c, err := client.NewClient(
 		db,
-		wiz.Discover,
-		wiz.TurnOn,
-		wiz.TurnOff,
+		wiz,
 	)
 	if err != nil {
 		panic(err)
