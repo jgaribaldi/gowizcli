@@ -31,6 +31,9 @@ type Config struct {
 		BroadcastAddress string `yaml:"broadcastAddress"`
 		QueryTimeoutSec  int    `yaml:"queryTimeoutSec"`
 	} `yaml:"network"`
+	Database struct {
+		File string `yaml:"file"`
+	} `yaml:"database"`
 }
 
 func main() {
@@ -61,7 +64,7 @@ func main() {
 	flag.StringVar(&command, "command", "", "Command to execute. Valid values are discover, show, reset, on, off")
 	flag.Parse()
 
-	db, err := db.NewConnection("lights.db")
+	db, err := db.NewConnection(config.Database.File)
 	if err != nil {
 		panic(err)
 	}
