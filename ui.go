@@ -73,7 +73,7 @@ type model struct {
 	currentView ViewType
 	viewHistory []ViewType
 
-	menuModel        MenuModel2
+	menuModel        MenuModel
 	discoverModel    DiscoverModel
 	showModel        ShowModel2
 	eraseAllModel    EraseAllModel
@@ -159,7 +159,7 @@ func initialModel() model {
 	return model{
 		currentView:      ViewMenu,
 		viewHistory:      []ViewType{},
-		menuModel:        MenuModel2{},
+		menuModel:        MenuModel{},
 		discoverModel:    DiscoverModel{},
 		showModel:        ShowModel2{},
 		eraseAllModel:    EraseAllModel{},
@@ -180,21 +180,6 @@ func navigateBack(m model) model {
 		m.viewHistory = m.viewHistory[:lastIndex]
 	}
 	return m
-}
-
-type MenuModel2 struct {
-}
-
-func (m MenuModel2) Init() tea.Cmd {
-	return nil
-}
-
-func (m MenuModel2) Update(msg tea.Msg) (MenuModel2, tea.Cmd) {
-	return m, nil
-}
-
-func (m MenuModel2) View() string {
-	return "Viewing the menu"
 }
 
 type DiscoverModel struct {
@@ -281,7 +266,7 @@ func (m MenuModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
