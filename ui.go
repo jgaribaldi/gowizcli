@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gowizcli/client"
 	"strings"
 
@@ -20,6 +21,14 @@ const (
 	ViewTurnOff
 )
 
+var viewCommandMap = map[client.CommandType]ViewType{
+	client.Discover: ViewDiscover,
+	client.Show:     ViewShow,
+	client.Reset:    ViewEraseAll,
+	client.TurnOn:   ViewTurnOn,
+	client.TurnOff:  ViewTurnOff,
+}
+
 type model struct {
 	currentView ViewType
 	viewHistory []ViewType
@@ -35,9 +44,18 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
+type navigateToMsg struct {
+	view ViewType
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if shouldQuit(msg) {
 		return m, tea.Quit
+	}
+
+	if navMsg, ok := msg.(navigateToMsg); ok {
+		m = navigateTo(m, navMsg.view)
+		return m, nil
 	}
 
 	if shouldGoBack(msg) {
@@ -110,7 +128,7 @@ func initialModel() model {
 	return model{
 		currentView:      ViewMenu,
 		viewHistory:      []ViewType{},
-		menuModel:        MenuModel{},
+		menuModel:        NewMenuModel(),
 		discoverModel:    DiscoverModel{},
 		showModel:        ShowModel2{},
 		eraseAllModel:    EraseAllModel{},
@@ -207,9 +225,16 @@ type MenuModel struct {
 }
 
 func NewMenuModel() MenuModel {
+	var options []client.Option
+	options = make([]client.Option, 0)
+
+	for _, o := range client.Options {
+		options = append(options, o)
+	}
+
 	return MenuModel{
 		cursor:  0,
-		options: client.Options,
+		options: options,
 	}
 }
 
@@ -225,6 +250,13 @@ func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			m.selected = m.cursor
+			fmt.Println("blah")
+			selectedOption := m.options[m.selected]
+			fmt.Printf("Selected option is %v\n", selectedOption)
+			return m, func() tea.Msg {
+				view := viewCommandMap[selectedOption.Type]
+				return navigateToMsg{view: view}
+			}
 		case "down", "j":
 			m.cursor++
 			if m.cursor >= len(client.Options) {
@@ -242,16 +274,18 @@ func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 
 func (m MenuModel) View() string {
 	s := strings.Builder{}
-	s.WriteString("Welcome to gowizcli! A Wiz lights client written in Go. Pick a command:\n\n")
-	for i, c := range client.Options {
+	s.WriteString("Welcome to gowizcli! A Wiz lights client written in Go. Select an option:\n\n")
+
+	for i, o := range m.options {
 		if m.cursor == i {
 			s.WriteString("[*] ")
 		} else {
 			s.WriteString("[ ] ")
 		}
-		s.WriteString(c.Name)
+		s.WriteString(o.Name)
 		s.WriteString("\n")
 	}
+
 	return s.String()
 }
 
