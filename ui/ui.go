@@ -1,16 +1,12 @@
-package main
+package ui
 
 import (
 	"fmt"
 	"gowizcli/client"
-	"gowizcli/wiz"
 	"strconv"
-	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type ViewType int
@@ -127,7 +123,7 @@ func (m model) View() string {
 	return ""
 }
 
-func initialModel(client *client.Client) model {
+func InitialModel(client *client.Client) model {
 	return model{
 		currentView:      ViewMenu,
 		viewHistory:      []ViewType{},
@@ -232,10 +228,8 @@ func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyTab:
 			m = nextInput(m)
-			// return m, nil
 		case tea.KeyShiftTab:
 			m = previousInput(m)
-			// return m, nil
 		}
 
 		for i := range m.inputs {
@@ -315,177 +309,4 @@ func (m LightOnOffModel) Update(msg tea.Msg) (LightOnOffModel, tea.Cmd) {
 
 func (m LightOnOffModel) View() string {
 	return "Viewing the lights on/off screen - Esc to go back to main menu"
-}
-
-type MenuModel struct {
-	cursor   int
-	options  []client.Option
-	selected int
-}
-
-func NewMenuModel() MenuModel {
-	var options []client.Option
-	options = make([]client.Option, 0)
-
-	for _, o := range client.Options {
-		options = append(options, o)
-	}
-
-	return MenuModel{
-		cursor:  0,
-		options: options,
-	}
-}
-
-func (m MenuModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "esc":
-			return m, tea.Quit
-		case "enter":
-			m.selected = m.cursor
-			fmt.Println("blah")
-			selectedOption := m.options[m.selected]
-			fmt.Printf("Selected option is %v\n", selectedOption)
-			return m, func() tea.Msg {
-				view := viewCommandMap[selectedOption.Type]
-				return navigateToMsg{view: view}
-			}
-		case "down", "j":
-			m.cursor++
-			if m.cursor >= len(m.options) {
-				m.cursor = 0
-			}
-		case "up", "k":
-			m.cursor--
-			if m.cursor < 0 {
-				m.cursor = len(m.options) - 1
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m MenuModel) View() string {
-	s := strings.Builder{}
-	s.WriteString("Welcome to gowizcli! A Wiz lights client written in Go. Select an option:\n\n")
-
-	for i, o := range m.options {
-		if m.cursor == i {
-			s.WriteString("[*] ")
-		} else {
-			s.WriteString("[ ] ")
-		}
-		s.WriteString(o.Name)
-		s.WriteString("\n")
-	}
-
-	return s.String()
-}
-
-var baseStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("240"))
-
-type ShowModel struct {
-	table   table.Model
-	loading bool
-	err     error
-	client  *client.Client
-}
-
-func NewShowModel(client *client.Client) ShowModel {
-	columns := []table.Column{
-		{Title: "ID", Width: 30},
-		{Title: "MacAddress", Width: 20},
-		{Title: "IpAddress", Width: 20},
-	}
-
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows([]table.Row{}),
-		table.WithFocused(true),
-		table.WithHeight(20),
-	)
-
-	s := table.DefaultStyles()
-	s.Header = s.Header.
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		BorderBottom(true).
-		Bold(false)
-
-	t.SetStyles(s)
-
-	return ShowModel{
-		table:   t,
-		loading: true,
-		err:     nil,
-		client:  client,
-	}
-}
-
-type showDataLoadedMsg struct {
-	lights []wiz.WizLight
-}
-
-type showDataErrorMsg struct {
-	err error
-}
-
-func fetchLightsCmd(c *client.Client) tea.Cmd {
-	return func() tea.Msg {
-		cmd := client.Command{
-			CommandType: client.Show,
-			Parameters:  []string{},
-		}
-		result, err := c.Execute(cmd)
-		if err != nil {
-			return showDataErrorMsg{err: err}
-		}
-		return showDataLoadedMsg{lights: result}
-	}
-}
-
-func (m ShowModel) Init() tea.Cmd {
-	return fetchLightsCmd(m.client)
-}
-
-func (m ShowModel) Update(msg tea.Msg) (ShowModel, tea.Cmd) {
-	var cmd tea.Cmd
-
-	switch msg := msg.(type) {
-	case showDataLoadedMsg:
-		rows := []table.Row{}
-		for _, l := range msg.lights {
-			rows = append(rows, table.Row{
-				l.Id,
-				l.MacAddress,
-				l.IpAddress,
-			})
-		}
-		m.table.SetRows(rows)
-		m.loading = false
-		m.err = nil
-		return m, nil
-	case showDataErrorMsg:
-		m.err = msg.err
-		m.loading = false
-		return m, nil
-	}
-
-	m.table, cmd = m.table.Update(msg)
-	return m, cmd
-}
-
-func (m ShowModel) View() string {
-	if m.loading {
-		return "Fetching lights...\n"
-	}
-	return baseStyle.Render(m.table.View()) + "\n"
 }

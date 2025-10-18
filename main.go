@@ -5,6 +5,7 @@ import (
 	"gowizcli/client"
 	"gowizcli/db"
 	"gowizcli/luminance"
+	"gowizcli/ui"
 	"gowizcli/wiz"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -46,7 +47,7 @@ func main() {
 		panic(err)
 	}
 
-	p := tea.NewProgram(initialModel(c), tea.WithAltScreen())
+	p := tea.NewProgram(ui.InitialModel(c), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}
