@@ -30,9 +30,8 @@ var viewCommandMap = map[client.CommandType]ViewType{
 }
 
 type model struct {
-	currentView ViewType
-	viewHistory []ViewType
-
+	currentView      ViewType
+	viewHistory      []ViewType
 	menuModel        MenuModel
 	discoverModel    DiscoverModel
 	showModel        ShowModel2
