@@ -24,71 +24,65 @@ func NewClient(
 	}, nil
 }
 
-func (c Client) Execute(command Command) error {
+func (c Client) Execute(command Command) ([]wiz.WizLight, error) {
 	switch command.CommandType {
 
 	case Discover:
-		c.executeDiscover(command.Parameters[0])
+		return c.executeDiscover(command.Parameters[0])
 
 	case Show:
-		c.executeShow()
+		return c.executeShow()
 
 	case Reset:
-		c.executeReset()
+		return c.executeReset()
 
 	case TurnOn:
-		c.executeTurnOn(command.Parameters[0])
+		return c.executeTurnOn(command.Parameters[0])
 
 	case TurnOff:
-		c.executeTurnOff(command.Parameters[0])
+		return c.executeTurnOff(command.Parameters[0])
 
 	default:
-		return fmt.Errorf("unknown command %s", command)
+		return nil, fmt.Errorf("unknown command %s", command)
 	}
-
-	return nil
 }
 
-func (c Client) executeDiscover(bcastAddr string) error {
+func (c Client) executeDiscover(bcastAddr string) ([]wiz.WizLight, error) {
 	lights, err := c.wizClient.Discover(bcastAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, light := range lights {
 		fmt.Printf("Found new light with MAC Address %s and IP Address %s\n", light.MacAddress, light.IpAddress)
 		_, err := c.lightsDb.Upsert(light)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return lights, nil
 }
 
-func (c Client) executeShow() error {
+func (c Client) executeShow() ([]wiz.WizLight, error) {
 	fmt.Println("Lights")
 	fmt.Println("------")
 
 	lights, err := c.lightsDb.FindAll()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, l := range lights {
-		fmt.Printf("ID: %s - MacAddress: %s - IpAddress: %s\n", l.Id, l.MacAddress, l.IpAddress)
-	}
-	return nil
+	return lights, nil
 }
 
-func (c Client) executeReset() error {
+func (c Client) executeReset() ([]wiz.WizLight, error) {
 	c.lightsDb.EraseAll()
-	fmt.Println("Erased all data - run a discovery to populate again")
-	return nil
+	return nil, nil
 }
 
-func (c Client) executeTurnOn(destAddr string) error {
-	return c.wizClient.TurnOn(destAddr)
+func (c Client) executeTurnOn(destAddr string) ([]wiz.WizLight, error) {
+	return nil, c.wizClient.TurnOn(destAddr)
 }
 
-func (c Client) executeTurnOff(destAddr string) error {
-	return c.wizClient.TurnOff(destAddr)
+func (c Client) executeTurnOff(destAddr string) ([]wiz.WizLight, error) {
+	return nil, c.wizClient.TurnOff(destAddr)
 }

@@ -37,7 +37,7 @@ func main() {
 	)
 	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
 
-	_, err = client.NewClient(
+	c, err := client.NewClient(
 		db,
 		wiz,
 		orchestrator.GetCurrentLuminance,
@@ -46,7 +46,7 @@ func main() {
 		panic(err)
 	}
 
-	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+	p := tea.NewProgram(initialModel(c), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}

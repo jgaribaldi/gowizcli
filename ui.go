@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"gowizcli/client"
+	"gowizcli/wiz"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -34,9 +37,10 @@ type model struct {
 	viewHistory      []ViewType
 	menuModel        MenuModel
 	discoverModel    DiscoverModel
-	showModel        ShowModel2
+	showModel        ShowModel
 	eraseAllModel    EraseAllModel
 	lightsOnOffModel LightOnOffModel
+	client           *client.Client
 }
 
 func (m model) Init() tea.Cmd {
@@ -123,15 +127,16 @@ func (m model) View() string {
 	return ""
 }
 
-func initialModel() model {
+func initialModel(client *client.Client) model {
 	return model{
 		currentView:      ViewMenu,
 		viewHistory:      []ViewType{},
 		menuModel:        NewMenuModel(),
-		discoverModel:    DiscoverModel{},
-		showModel:        ShowModel2{},
+		discoverModel:    NewDiscoverModel(client),
+		showModel:        NewShowModel(client),
 		eraseAllModel:    EraseAllModel{},
 		lightsOnOffModel: LightOnOffModel{},
+		client:           client,
 	}
 }
 
@@ -151,33 +156,128 @@ func navigateBack(m model) model {
 }
 
 type DiscoverModel struct {
+	client           *client.Client
+	discovering      bool
+	broadcastAddress string
+	inputs           []textinput.Model
+	focused          int
+}
+
+func NewDiscoverModel(client *client.Client) DiscoverModel {
+	var inputs []textinput.Model
+	inputs = make([]textinput.Model, 0)
+
+	input1 := textinput.New()
+	input1.Placeholder = "192"
+	input1.CharLimit = 3
+	input1.Width = 3
+	input1.Prompt = ""
+	input1.Validate = octetValidator
+	input1.Focus()
+	inputs = append(inputs, input1)
+
+	input2 := textinput.New()
+	input2.Placeholder = "168"
+	input2.CharLimit = 3
+	input2.Width = 3
+	input2.Prompt = ""
+	input2.Validate = octetValidator
+	inputs = append(inputs, input2)
+
+	input3 := textinput.New()
+	input3.Placeholder = "1"
+	input3.CharLimit = 3
+	input3.Width = 3
+	input3.Prompt = ""
+	input3.Validate = octetValidator
+	inputs = append(inputs, input3)
+
+	input4 := textinput.New()
+	input4.Placeholder = "255"
+	input4.CharLimit = 3
+	input4.Width = 3
+	input4.Prompt = ""
+	input4.Validate = octetValidator
+	inputs = append(inputs, input4)
+
+	return DiscoverModel{
+		client:           client,
+		discovering:      false,
+		broadcastAddress: "",
+		inputs:           inputs,
+		focused:          0,
+	}
+}
+
+func octetValidator(octet string) error {
+	number, err := strconv.ParseInt(octet, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	if number < 0 || number > 255 {
+		return fmt.Errorf("incorrect octet: %s", octet)
+	}
+
+	return nil
 }
 
 func (m DiscoverModel) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
-	return m, nil
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyTab:
+			m = nextInput(m)
+			// return m, nil
+		case tea.KeyShiftTab:
+			m = previousInput(m)
+			// return m, nil
+		}
+
+		for i := range m.inputs {
+			m.inputs[i].Blur()
+		}
+		m.inputs[m.focused].Focus()
+	}
+
+	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
+	for i := range m.inputs {
+		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	}
+	return m, tea.Batch(cmds...)
+}
+
+func previousInput(m DiscoverModel) DiscoverModel {
+	m.focused--
+	if m.focused < 0 {
+		m.focused = len(m.inputs) - 1
+	}
+	return m
+}
+
+func nextInput(m DiscoverModel) DiscoverModel {
+	m.focused = (m.focused + 1) % len(m.inputs)
+	return m
 }
 
 func (m DiscoverModel) View() string {
+	if m.broadcastAddress == "" {
+		return fmt.Sprintf(
+			"Broadcast address: %s.%s.%s.%s",
+			m.inputs[0].View(),
+			m.inputs[1].View(),
+			m.inputs[2].View(),
+			m.inputs[3].View(),
+		)
+	}
+	if m.discovering {
+		return fmt.Sprintf("Executing discovery on broadcast %s...", m.broadcastAddress)
+	}
 	return "Viewing the discovery screen - Esc to go back to main menu"
-}
-
-type ShowModel2 struct {
-}
-
-func (m ShowModel2) Init() tea.Cmd {
-	return nil
-}
-
-func (m ShowModel2) Update(msg tea.Msg) (ShowModel2, tea.Cmd) {
-	return m, nil
-}
-
-func (m ShowModel2) View() string {
-	return "Viewing the show lights screen - Esc to go back to main menu"
 }
 
 type EraseAllModel struct {
@@ -293,17 +393,99 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 type ShowModel struct {
-	table table.Model
+	table   table.Model
+	loading bool
+	err     error
+	client  *client.Client
+}
+
+func NewShowModel(client *client.Client) ShowModel {
+	columns := []table.Column{
+		{Title: "ID", Width: 30},
+		{Title: "MacAddress", Width: 20},
+		{Title: "IpAddress", Width: 20},
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows([]table.Row{}),
+		table.WithFocused(true),
+		table.WithHeight(20),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+
+	t.SetStyles(s)
+
+	return ShowModel{
+		table:   t,
+		loading: true,
+		err:     nil,
+		client:  client,
+	}
+}
+
+type showDataLoadedMsg struct {
+	lights []wiz.WizLight
+}
+
+type showDataErrorMsg struct {
+	err error
+}
+
+func fetchLightsCmd(c *client.Client) tea.Cmd {
+	return func() tea.Msg {
+		cmd := client.Command{
+			CommandType: client.Show,
+			Parameters:  []string{},
+		}
+		result, err := c.Execute(cmd)
+		if err != nil {
+			return showDataErrorMsg{err: err}
+		}
+		return showDataLoadedMsg{lights: result}
+	}
 }
 
 func (m ShowModel) Init() tea.Cmd {
-	return nil
+	return fetchLightsCmd(m.client)
 }
 
 func (m ShowModel) Update(msg tea.Msg) (ShowModel, tea.Cmd) {
-	return m, nil
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case showDataLoadedMsg:
+		rows := []table.Row{}
+		for _, l := range msg.lights {
+			rows = append(rows, table.Row{
+				l.Id,
+				l.MacAddress,
+				l.IpAddress,
+			})
+		}
+		m.table.SetRows(rows)
+		m.loading = false
+		m.err = nil
+		return m, nil
+	case showDataErrorMsg:
+		m.err = msg.err
+		m.loading = false
+		return m, nil
+	}
+
+	m.table, cmd = m.table.Update(msg)
+	return m, cmd
 }
 
 func (m ShowModel) View() string {
+	if m.loading {
+		return "Fetching lights...\n"
+	}
 	return baseStyle.Render(m.table.View()) + "\n"
 }
