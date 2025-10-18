@@ -258,13 +258,13 @@ func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 			}
 		case "down", "j":
 			m.cursor++
-			if m.cursor >= len(client.Options) {
+			if m.cursor >= len(m.options) {
 				m.cursor = 0
 			}
 		case "up", "k":
 			m.cursor--
 			if m.cursor < 0 {
-				m.cursor = len(client.Options) - 1
+				m.cursor = len(m.options) - 1
 			}
 		}
 	}
