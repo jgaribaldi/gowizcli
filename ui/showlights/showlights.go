@@ -1,4 +1,4 @@
-package ui
+package showlights
 
 import (
 	"gowizcli/client"
@@ -111,3 +111,7 @@ type showDataLoadedMsg struct {
 type showDataErrorMsg struct {
 	err error
 }
+
+var baseStyle = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("240"))
