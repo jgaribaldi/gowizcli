@@ -80,8 +80,13 @@ func (m ShowModel) Update(msg tea.Msg) (ShowModel, tea.Cmd) {
 
 func (m ShowModel) View() string {
 	if m.loading {
-		return "Fetching lights...\n"
+		return "Fetching lights..."
 	}
+
+	if m.err != nil {
+		return "Error fetching lights"
+	}
+
 	return baseStyle.Render(m.table.View()) + "\n"
 }
 

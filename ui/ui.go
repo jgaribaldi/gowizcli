@@ -1,11 +1,8 @@
 package ui
 
 import (
-	"fmt"
 	"gowizcli/client"
-	"strconv"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -54,7 +51,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if navMsg, ok := msg.(navigateToMsg); ok {
 		m = navigateTo(m, navMsg.view)
-		return m, nil
+		return m, m.initCurrentView()
 	}
 
 	if shouldGoBack(msg) {
@@ -63,6 +60,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m.updateCurrentView(msg)
+}
+
+func (m model) initCurrentView() tea.Cmd {
+	switch m.currentView {
+	case ViewMenu:
+		return m.menuModel.Init()
+	case ViewDiscover:
+		return m.discoverModel.Init()
+	case ViewShow:
+		return m.showModel.Init()
+	case ViewEraseAll:
+		return m.eraseAllModel.Init()
+	case ViewTurnOn, ViewTurnOff:
+		return m.lightsOnOffModel.Init()
+	}
+
+	return nil
 }
 
 func (m model) updateCurrentView(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -149,129 +163,6 @@ func navigateBack(m model) model {
 		m.viewHistory = m.viewHistory[:lastIndex]
 	}
 	return m
-}
-
-type DiscoverModel struct {
-	client           *client.Client
-	discovering      bool
-	broadcastAddress string
-	inputs           []textinput.Model
-	focused          int
-}
-
-func NewDiscoverModel(client *client.Client) DiscoverModel {
-	var inputs []textinput.Model
-	inputs = make([]textinput.Model, 0)
-
-	input1 := textinput.New()
-	input1.Placeholder = "192"
-	input1.CharLimit = 3
-	input1.Width = 3
-	input1.Prompt = ""
-	input1.Validate = octetValidator
-	input1.Focus()
-	inputs = append(inputs, input1)
-
-	input2 := textinput.New()
-	input2.Placeholder = "168"
-	input2.CharLimit = 3
-	input2.Width = 3
-	input2.Prompt = ""
-	input2.Validate = octetValidator
-	inputs = append(inputs, input2)
-
-	input3 := textinput.New()
-	input3.Placeholder = "1"
-	input3.CharLimit = 3
-	input3.Width = 3
-	input3.Prompt = ""
-	input3.Validate = octetValidator
-	inputs = append(inputs, input3)
-
-	input4 := textinput.New()
-	input4.Placeholder = "255"
-	input4.CharLimit = 3
-	input4.Width = 3
-	input4.Prompt = ""
-	input4.Validate = octetValidator
-	inputs = append(inputs, input4)
-
-	return DiscoverModel{
-		client:           client,
-		discovering:      false,
-		broadcastAddress: "",
-		inputs:           inputs,
-		focused:          0,
-	}
-}
-
-func octetValidator(octet string) error {
-	number, err := strconv.ParseInt(octet, 10, 64)
-	if err != nil {
-		return err
-	}
-
-	if number < 0 || number > 255 {
-		return fmt.Errorf("incorrect octet: %s", octet)
-	}
-
-	return nil
-}
-
-func (m DiscoverModel) Init() tea.Cmd {
-	return textinput.Blink
-}
-
-func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyTab:
-			m = nextInput(m)
-		case tea.KeyShiftTab:
-			m = previousInput(m)
-		}
-
-		for i := range m.inputs {
-			m.inputs[i].Blur()
-		}
-		m.inputs[m.focused].Focus()
-	}
-
-	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
-	}
-	return m, tea.Batch(cmds...)
-}
-
-func previousInput(m DiscoverModel) DiscoverModel {
-	m.focused--
-	if m.focused < 0 {
-		m.focused = len(m.inputs) - 1
-	}
-	return m
-}
-
-func nextInput(m DiscoverModel) DiscoverModel {
-	m.focused = (m.focused + 1) % len(m.inputs)
-	return m
-}
-
-func (m DiscoverModel) View() string {
-	if m.broadcastAddress == "" {
-		return fmt.Sprintf(
-			"Broadcast address: %s.%s.%s.%s",
-			m.inputs[0].View(),
-			m.inputs[1].View(),
-			m.inputs[2].View(),
-			m.inputs[3].View(),
-		)
-	}
-	if m.discovering {
-		return fmt.Sprintf("Executing discovery on broadcast %s...", m.broadcastAddress)
-	}
-	return "Viewing the discovery screen - Esc to go back to main menu"
 }
 
 type EraseAllModel struct {
