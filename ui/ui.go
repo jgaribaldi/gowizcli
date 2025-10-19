@@ -32,7 +32,7 @@ type model struct {
 	viewHistory      []ViewType
 	menuModel        MenuModel
 	discoverModel    discover.Model
-	showModel        showlights.ShowModel
+	showModel        showlights.Model
 	eraseAllModel    EraseAllModel
 	lightsOnOffModel LightOnOffModel
 	client           *client.Client
@@ -146,7 +146,7 @@ func InitialModel(client *client.Client) model {
 		viewHistory:      []ViewType{},
 		menuModel:        NewMenuModel(),
 		discoverModel:    discover.NewModel(client),
-		showModel:        showlights.NewShowModel(client),
+		showModel:        showlights.NewModel(client),
 		eraseAllModel:    EraseAllModel{},
 		lightsOnOffModel: LightOnOffModel{},
 		client:           client,

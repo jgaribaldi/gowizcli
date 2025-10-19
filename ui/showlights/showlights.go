@@ -9,14 +9,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type ShowModel struct {
+type Model struct {
 	table   table.Model
 	loading bool
 	err     error
 	client  *client.Client
 }
 
-func NewShowModel(client *client.Client) ShowModel {
+func NewModel(client *client.Client) Model {
 	columns := []table.Column{
 		{Title: "ID", Width: 40},
 		{Title: "MAC Address", Width: 20},
@@ -39,7 +39,7 @@ func NewShowModel(client *client.Client) ShowModel {
 
 	t.SetStyles(s)
 
-	return ShowModel{
+	return Model{
 		table:   t,
 		loading: true,
 		err:     nil,
@@ -47,11 +47,11 @@ func NewShowModel(client *client.Client) ShowModel {
 	}
 }
 
-func (m ShowModel) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return fetchLightsCmd(m.client)
 }
 
-func (m ShowModel) Update(msg tea.Msg) (ShowModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -78,7 +78,7 @@ func (m ShowModel) Update(msg tea.Msg) (ShowModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m ShowModel) View() string {
+func (m Model) View() string {
 	if m.loading {
 		return "Fetching lights..."
 	}
