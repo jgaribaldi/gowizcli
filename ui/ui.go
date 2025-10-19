@@ -30,7 +30,7 @@ type model struct {
 	currentView      ViewType
 	viewHistory      []ViewType
 	menuModel        MenuModel
-	discoverModel    discover.DiscoverModel
+	discoverModel    discover.Model
 	showModel        ShowModel
 	eraseAllModel    EraseAllModel
 	lightsOnOffModel LightOnOffModel
@@ -68,7 +68,7 @@ func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 	case ViewMenu:
 		return m, m.menuModel.Init()
 	case ViewDiscover:
-		m.discoverModel = discover.NewDiscoverModel(m.client)
+		m.discoverModel = discover.NewModel(m.client)
 		return m, m.discoverModel.Init()
 	case ViewShow:
 		return m, m.showModel.Init()
@@ -144,7 +144,7 @@ func InitialModel(client *client.Client) model {
 		currentView:      ViewMenu,
 		viewHistory:      []ViewType{},
 		menuModel:        NewMenuModel(),
-		discoverModel:    discover.NewDiscoverModel(client),
+		discoverModel:    discover.NewModel(client),
 		showModel:        NewShowModel(client),
 		eraseAllModel:    EraseAllModel{},
 		lightsOnOffModel: LightOnOffModel{},

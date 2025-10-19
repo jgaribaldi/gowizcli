@@ -11,15 +11,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type DiscoverModel struct {
+type Model struct {
 	client    *client.Client
 	input     ipAddressInput
 	data      discoverData
 	cmdStatus commandStatus
 }
 
-func NewDiscoverModel(client *client.Client) DiscoverModel {
-	return DiscoverModel{
+func NewModel(client *client.Client) Model {
+	return Model{
 		client:    client,
 		input:     newIpAddressInput(),
 		data:      newDiscoverData(),
@@ -27,11 +27,11 @@ func NewDiscoverModel(client *client.Client) DiscoverModel {
 	}
 }
 
-func (m DiscoverModel) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -64,7 +64,7 @@ func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m DiscoverModel) View() string {
+func (m Model) View() string {
 	if m.cmdStatus.isRunning() {
 		return "Executing discovery..."
 	}
