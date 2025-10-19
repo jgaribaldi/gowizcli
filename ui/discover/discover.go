@@ -11,6 +11,75 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type DiscoverModel struct {
+	client    *client.Client
+	input     ipAddressInput
+	data      discoverData
+	cmdStatus commandStatus
+}
+
+func NewDiscoverModel(client *client.Client) DiscoverModel {
+	return DiscoverModel{
+		client:    client,
+		input:     newIpAddressInput(),
+		data:      newDiscoverData(),
+		cmdStatus: newCommandStatus(),
+	}
+}
+
+func (m DiscoverModel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyTab:
+			m.input = m.input.nextOctet()
+		case tea.KeyShiftTab:
+			m.input = m.input.previousOctet()
+		case tea.KeyEnter:
+			if !m.cmdStatus.isStarted() {
+				broadcastAddress := m.input.getValue()
+				m.cmdStatus = m.cmdStatus.start()
+				return m, discoverLightsCmd(m.client, broadcastAddress)
+			}
+			if m.cmdStatus.isFinished() {
+				m.cmdStatus = m.cmdStatus.reset()
+				return m, nil
+			}
+		}
+
+	case discoverOkMsg:
+		m.data = m.data.result(msg.lights)
+		m.cmdStatus = m.cmdStatus.finish()
+	case discoverErrorMsg:
+		m.data = m.data.error(msg.err)
+		m.cmdStatus = m.cmdStatus.finish()
+	}
+
+	var cmds []tea.Cmd = make([]tea.Cmd, 0)
+	m.input, cmds = m.input.update(msg)
+	return m, tea.Batch(cmds...)
+}
+
+func (m DiscoverModel) View() string {
+	if m.cmdStatus.isRunning() {
+		return "Executing discovery..."
+	}
+
+	if m.cmdStatus.isFinished() {
+		if m.data.err != nil {
+			return fmt.Sprintf("Error executing discover: %s", m.data.err)
+		} else {
+			return fmt.Sprintf("Finished discover and found %d lights - Esc to go back to main menu", len(m.data.lights))
+		}
+	}
+
+	return m.input.getValue()
+}
+
 type ipAddressInput struct {
 	inputs  []textinput.Model
 	focused int
@@ -52,7 +121,7 @@ func (i ipAddressInput) nextOctet() ipAddressInput {
 	return i
 }
 
-func (i ipAddressInput) GetValue() string {
+func (i ipAddressInput) getValue() string {
 	return fmt.Sprintf(
 		"%s.%s.%s.%s",
 		strings.TrimSpace(i.inputs[0].View()),
@@ -62,7 +131,7 @@ func (i ipAddressInput) GetValue() string {
 	)
 }
 
-func (i ipAddressInput) Update(msg tea.Msg) (ipAddressInput, []tea.Cmd) {
+func (i ipAddressInput) update(msg tea.Msg) (ipAddressInput, []tea.Cmd) {
 	var cmds []tea.Cmd = make([]tea.Cmd, len(i.inputs))
 
 	i.inputs[0], cmds[0] = i.inputs[0].Update(msg)
@@ -71,6 +140,30 @@ func (i ipAddressInput) Update(msg tea.Msg) (ipAddressInput, []tea.Cmd) {
 	i.inputs[3], cmds[3] = i.inputs[3].Update(msg)
 
 	return i, cmds
+}
+
+func newOctetInput(ph string) textinput.Model {
+	input := textinput.New()
+	input.Placeholder = ph
+	input.CharLimit = 3
+	input.Width = 3
+	input.Prompt = ""
+	input.Validate = octetValidator
+
+	return input
+}
+
+func octetValidator(octet string) error {
+	number, err := strconv.ParseInt(octet, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	if number < 0 || number > 255 {
+		return fmt.Errorf("incorrect octet: %s", octet)
+	}
+
+	return nil
 }
 
 type discoverData struct {
@@ -85,7 +178,7 @@ func newDiscoverData() discoverData {
 	}
 }
 
-func (d discoverData) Result(lights []wiz.WizLight) discoverData {
+func (d discoverData) result(lights []wiz.WizLight) discoverData {
 	for _, l := range lights {
 		d.lights = append(d.lights, l)
 	}
@@ -93,103 +186,10 @@ func (d discoverData) Result(lights []wiz.WizLight) discoverData {
 	return d
 }
 
-func (d discoverData) Error(err error) discoverData {
+func (d discoverData) error(err error) discoverData {
 	d.err = err
 	d.lights = make([]wiz.WizLight, 0)
 	return d
-}
-
-type DiscoverModel struct {
-	client    *client.Client
-	input     ipAddressInput
-	data      discoverData
-	cmdStatus commandStatus
-}
-
-func NewDiscoverModel(client *client.Client) DiscoverModel {
-	return DiscoverModel{
-		client:    client,
-		input:     newIpAddressInput(),
-		data:      newDiscoverData(),
-		cmdStatus: newCommandStatus(),
-	}
-}
-
-func newOctetInput(ph string) textinput.Model {
-	input := textinput.New()
-	input.Placeholder = ph
-	input.CharLimit = 3
-	input.Width = 3
-	input.Prompt = ""
-	input.Validate = octetValidator
-
-	return input
-}
-
-func (m DiscoverModel) Init() tea.Cmd {
-	return textinput.Blink
-}
-
-func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyTab:
-			m.input = m.input.nextOctet()
-		case tea.KeyShiftTab:
-			m.input = m.input.previousOctet()
-		case tea.KeyEnter:
-			if !m.cmdStatus.isStarted() {
-				broadcastAddress := m.input.GetValue()
-				m.cmdStatus = m.cmdStatus.start()
-				return m, discoverLightsCmd(m.client, broadcastAddress)
-			}
-			if m.cmdStatus.isFinished() {
-				m.cmdStatus = m.cmdStatus.reset()
-				return m, nil
-			}
-		}
-
-	case discoverOkMsg:
-		m.data = m.data.Result(msg.lights)
-		m.cmdStatus = m.cmdStatus.finish()
-	case discoverErrorMsg:
-		m.data = m.data.Error(msg.err)
-		m.cmdStatus = m.cmdStatus.finish()
-	}
-
-	var cmds []tea.Cmd = make([]tea.Cmd, 0)
-	m.input, cmds = m.input.Update(msg)
-	return m, tea.Batch(cmds...)
-}
-
-func (m DiscoverModel) View() string {
-	if m.cmdStatus.isRunning() {
-		return "Executing discovery..."
-	}
-
-	if m.cmdStatus.isFinished() {
-		if m.data.err != nil {
-			return fmt.Sprintf("Error executing discover: %s", m.data.err)
-		} else {
-			return fmt.Sprintf("Finished discover and found %d lights - Esc to go back to main menu", len(m.data.lights))
-		}
-	}
-
-	return m.input.GetValue()
-}
-
-func octetValidator(octet string) error {
-	number, err := strconv.ParseInt(octet, 10, 64)
-	if err != nil {
-		return err
-	}
-
-	if number < 0 || number > 255 {
-		return fmt.Errorf("incorrect octet: %s", octet)
-	}
-
-	return nil
 }
 
 type commandStatus struct {
