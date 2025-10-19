@@ -18,9 +18,9 @@ type ShowModel struct {
 
 func NewShowModel(client *client.Client) ShowModel {
 	columns := []table.Column{
-		{Title: "ID", Width: 30},
-		{Title: "MacAddress", Width: 20},
-		{Title: "IpAddress", Width: 20},
+		{Title: "ID", Width: 40},
+		{Title: "MAC Address", Width: 20},
+		{Title: "IP Address", Width: 20},
 	}
 
 	t := table.New(

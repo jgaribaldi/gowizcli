@@ -5,68 +5,125 @@ import (
 	"gowizcli/client"
 	"gowizcli/wiz"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type ipAddressInput struct {
+	inputs  []textinput.Model
+	focused int
+}
+
+func newIpAddressInput() ipAddressInput {
+	var inputs []textinput.Model = make([]textinput.Model, 4)
+
+	inputs[0] = newOctetInput("192")
+	inputs[1] = newOctetInput("168")
+	inputs[2] = newOctetInput("1")
+	inputs[3] = newOctetInput("255")
+	inputs[0].Focus()
+
+	return ipAddressInput{
+		inputs:  inputs,
+		focused: 0,
+	}
+}
+
+func (i ipAddressInput) previousOctet() ipAddressInput {
+	i.focused--
+	if i.focused < 0 {
+		i.focused = len(i.inputs) - 1
+	}
+	for ii := range i.inputs {
+		i.inputs[ii].Blur()
+	}
+	i.inputs[i.focused].Focus()
+	return i
+}
+
+func (i ipAddressInput) nextOctet() ipAddressInput {
+	i.focused = (i.focused + 1) % len(i.inputs)
+	for ii := range i.inputs {
+		i.inputs[ii].Blur()
+	}
+	i.inputs[i.focused].Focus()
+	return i
+}
+
+func (i ipAddressInput) GetValue() string {
+	return fmt.Sprintf(
+		"%s.%s.%s.%s",
+		strings.TrimSpace(i.inputs[0].View()),
+		strings.TrimSpace(i.inputs[1].View()),
+		strings.TrimSpace(i.inputs[2].View()),
+		strings.TrimSpace(i.inputs[3].View()),
+	)
+}
+
+func (i ipAddressInput) Update(msg tea.Msg) (ipAddressInput, []tea.Cmd) {
+	var cmds []tea.Cmd = make([]tea.Cmd, len(i.inputs))
+
+	i.inputs[0], cmds[0] = i.inputs[0].Update(msg)
+	i.inputs[1], cmds[1] = i.inputs[1].Update(msg)
+	i.inputs[2], cmds[2] = i.inputs[2].Update(msg)
+	i.inputs[3], cmds[3] = i.inputs[3].Update(msg)
+
+	return i, cmds
+}
+
+type discoverData struct {
+	lights []wiz.WizLight
+	err    error
+}
+
+func newDiscoverData() discoverData {
+	return discoverData{
+		lights: make([]wiz.WizLight, 0),
+		err:    nil,
+	}
+}
+
+func (d discoverData) Result(lights []wiz.WizLight) discoverData {
+	for _, l := range lights {
+		d.lights = append(d.lights, l)
+	}
+	d.err = nil
+	return d
+}
+
+func (d discoverData) Error(err error) discoverData {
+	d.err = err
+	d.lights = make([]wiz.WizLight, 0)
+	return d
+}
+
 type DiscoverModel struct {
-	client           *client.Client
-	discovering      bool
-	broadcastAddress string
-	inputs           []textinput.Model
-	focused          int
-	lights           []wiz.WizLight
-	err              error
+	client    *client.Client
+	input     ipAddressInput
+	data      discoverData
+	cmdStatus commandStatus
 }
 
 func NewDiscoverModel(client *client.Client) DiscoverModel {
-	var inputs []textinput.Model
-	inputs = make([]textinput.Model, 0)
-
-	input1 := textinput.New()
-	input1.Placeholder = "192"
-	input1.CharLimit = 3
-	input1.Width = 3
-	input1.Prompt = ""
-	input1.Validate = octetValidator
-	input1.Focus()
-	inputs = append(inputs, input1)
-
-	input2 := textinput.New()
-	input2.Placeholder = "168"
-	input2.CharLimit = 3
-	input2.Width = 3
-	input2.Prompt = ""
-	input2.Validate = octetValidator
-	inputs = append(inputs, input2)
-
-	input3 := textinput.New()
-	input3.Placeholder = "1"
-	input3.CharLimit = 3
-	input3.Width = 3
-	input3.Prompt = ""
-	input3.Validate = octetValidator
-	inputs = append(inputs, input3)
-
-	input4 := textinput.New()
-	input4.Placeholder = "255"
-	input4.CharLimit = 3
-	input4.Width = 3
-	input4.Prompt = ""
-	input4.Validate = octetValidator
-	inputs = append(inputs, input4)
-
-	var lights []wiz.WizLight = make([]wiz.WizLight, 0)
 	return DiscoverModel{
-		client:           client,
-		discovering:      false,
-		broadcastAddress: "",
-		inputs:           inputs,
-		focused:          0,
-		lights:           lights,
-		err:              nil,
+		client:    client,
+		input:     newIpAddressInput(),
+		data:      newDiscoverData(),
+		cmdStatus: newCommandStatus(),
 	}
+}
+
+func newOctetInput(ph string) textinput.Model {
+	input := textinput.New()
+	input.Placeholder = ph
+	input.CharLimit = 3
+	input.Width = 3
+	input.Prompt = ""
+	input.Validate = octetValidator
+
+	return input
 }
 
 func (m DiscoverModel) Init() tea.Cmd {
@@ -78,60 +135,48 @@ func (m DiscoverModel) Update(msg tea.Msg) (DiscoverModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyTab:
-			m = nextInput(m)
+			m.input = m.input.nextOctet()
 		case tea.KeyShiftTab:
-			m = previousInput(m)
+			m.input = m.input.previousOctet()
 		case tea.KeyEnter:
-			m.broadcastAddress = fmt.Sprintf(
-				"%s.%s.%s.%s",
-				m.inputs[0].View(),
-				m.inputs[1].View(),
-				m.inputs[2].View(),
-				m.inputs[3].View(),
-			)
-			discoverLightsCmd(m.client, m.broadcastAddress)
-			m.discovering = true
+			if !m.cmdStatus.isStarted() {
+				broadcastAddress := m.input.GetValue()
+				m.cmdStatus = m.cmdStatus.start()
+				return m, discoverLightsCmd(m.client, broadcastAddress)
+			}
+			if m.cmdStatus.isFinished() {
+				m.cmdStatus = m.cmdStatus.reset()
+				return m, nil
+			}
 		}
 
-		for i := range m.inputs {
-			m.inputs[i].Blur()
-		}
-		m.inputs[m.focused].Focus()
 	case discoverOkMsg:
-		m.discovering = false
-		for _, l := range msg.lights {
-			m.lights = append(m.lights, l)
-		}
+		m.data = m.data.Result(msg.lights)
+		m.cmdStatus = m.cmdStatus.finish()
 	case discoverErrorMsg:
-		m.discovering = false
-		m.err = msg.err
+		m.data = m.data.Error(msg.err)
+		m.cmdStatus = m.cmdStatus.finish()
 	}
 
-	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
-	}
+	var cmds []tea.Cmd = make([]tea.Cmd, 0)
+	m.input, cmds = m.input.Update(msg)
 	return m, tea.Batch(cmds...)
 }
 
 func (m DiscoverModel) View() string {
-	if m.broadcastAddress == "" {
-		return fmt.Sprintf(
-			"Broadcast address: %s.%s.%s.%s",
-			m.inputs[0].View(),
-			m.inputs[1].View(),
-			m.inputs[2].View(),
-			m.inputs[3].View(),
-		)
-	}
-	if m.discovering {
-		return fmt.Sprintf("Executing discovery on broadcast %s...", m.broadcastAddress)
+	if m.cmdStatus.isRunning() {
+		return "Executing discovery..."
 	}
 
-	if m.err != nil {
-		return fmt.Sprintf("Error executing discover: %s", m.err)
+	if m.cmdStatus.isFinished() {
+		if m.data.err != nil {
+			return fmt.Sprintf("Error executing discover: %s", m.data.err)
+		} else {
+			return fmt.Sprintf("Finished discover and found %d lights - Esc to go back to main menu", len(m.data.lights))
+		}
 	}
-	return fmt.Sprintf("Finished discover and found %d lights - Esc to go back to main menu", len(m.lights))
+
+	return m.input.GetValue()
 }
 
 func octetValidator(octet string) error {
@@ -147,17 +192,46 @@ func octetValidator(octet string) error {
 	return nil
 }
 
-func previousInput(m DiscoverModel) DiscoverModel {
-	m.focused--
-	if m.focused < 0 {
-		m.focused = len(m.inputs) - 1
-	}
-	return m
+type commandStatus struct {
+	running  bool
+	finished bool
 }
 
-func nextInput(m DiscoverModel) DiscoverModel {
-	m.focused = (m.focused + 1) % len(m.inputs)
-	return m
+func newCommandStatus() commandStatus {
+	return commandStatus{
+		running:  false,
+		finished: false,
+	}
+}
+
+func (s commandStatus) start() commandStatus {
+	s.running = true
+	s.finished = false
+	return s
+}
+
+func (s commandStatus) finish() commandStatus {
+	s.running = false
+	s.finished = true
+	return s
+}
+
+func (s commandStatus) reset() commandStatus {
+	s.running = false
+	s.finished = false
+	return s
+}
+
+func (s commandStatus) isFinished() bool {
+	return !s.running && s.finished
+}
+
+func (s commandStatus) isStarted() bool {
+	return s.running && !s.finished
+}
+
+func (s commandStatus) isRunning() bool {
+	return s.running
 }
 
 func discoverLightsCmd(c *client.Client, broadcastAddress string) tea.Cmd {

@@ -51,7 +51,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if navMsg, ok := msg.(navigateToMsg); ok {
 		m = navigateTo(m, navMsg.view)
-		return m, m.initCurrentView()
+		return m.initCurrentView()
 	}
 
 	if shouldGoBack(msg) {
@@ -62,21 +62,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.updateCurrentView(msg)
 }
 
-func (m model) initCurrentView() tea.Cmd {
+func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 	switch m.currentView {
 	case ViewMenu:
-		return m.menuModel.Init()
+		return m, m.menuModel.Init()
 	case ViewDiscover:
-		return m.discoverModel.Init()
+		m.discoverModel = NewDiscoverModel(m.client)
+		return m, m.discoverModel.Init()
 	case ViewShow:
-		return m.showModel.Init()
+		return m, m.showModel.Init()
 	case ViewEraseAll:
-		return m.eraseAllModel.Init()
+		return m, m.eraseAllModel.Init()
 	case ViewTurnOn, ViewTurnOff:
-		return m.lightsOnOffModel.Init()
+		return m, m.lightsOnOffModel.Init()
 	}
 
-	return nil
+	return m, nil
 }
 
 func (m model) updateCurrentView(msg tea.Msg) (tea.Model, tea.Cmd) {
