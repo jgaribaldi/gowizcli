@@ -3,6 +3,7 @@ package discover
 import (
 	"fmt"
 	"gowizcli/client"
+	"gowizcli/ui/common"
 	"gowizcli/wiz"
 	"strconv"
 	"strings"
@@ -15,7 +16,7 @@ type Model struct {
 	client    *client.Client
 	input     ipAddressInput
 	data      discoverData
-	cmdStatus commandStatus
+	cmdStatus common.CommandStatus
 }
 
 func NewModel(client *client.Client) Model {
@@ -23,7 +24,7 @@ func NewModel(client *client.Client) Model {
 		client:    client,
 		input:     newIpAddressInput(),
 		data:      newDiscoverData(),
-		cmdStatus: newCommandStatus(),
+		cmdStatus: common.NewCommandStatus(),
 	}
 }
 
@@ -40,23 +41,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyShiftTab:
 			m.input = m.input.previousOctet()
 		case tea.KeyEnter:
-			if !m.cmdStatus.isStarted() {
+			if !m.cmdStatus.IsStarted() {
 				broadcastAddress := m.input.getValue()
-				m.cmdStatus = m.cmdStatus.start()
+				m.cmdStatus = m.cmdStatus.Start()
 				return m, discoverLightsCmd(m.client, broadcastAddress)
 			}
-			if m.cmdStatus.isFinished() {
-				m.cmdStatus = m.cmdStatus.reset()
+			if m.cmdStatus.IsFinished() {
+				m.cmdStatus = m.cmdStatus.Reset()
 				return m, nil
 			}
 		}
 
 	case discoverOkMsg:
 		m.data = m.data.result(msg.lights)
-		m.cmdStatus = m.cmdStatus.finish()
+		m.cmdStatus = m.cmdStatus.Finish()
 	case discoverErrorMsg:
 		m.data = m.data.error(msg.err)
-		m.cmdStatus = m.cmdStatus.finish()
+		m.cmdStatus = m.cmdStatus.Finish()
 	}
 
 	var cmds []tea.Cmd = make([]tea.Cmd, 0)
@@ -65,11 +66,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.cmdStatus.isRunning() {
+	if m.cmdStatus.IsRunning() {
 		return "Executing discovery..."
 	}
 
-	if m.cmdStatus.isFinished() {
+	if m.cmdStatus.IsFinished() {
 		if m.data.err != nil {
 			return fmt.Sprintf("Error executing discover: %s", m.data.err)
 		} else {
@@ -190,48 +191,6 @@ func (d discoverData) error(err error) discoverData {
 	d.err = err
 	d.lights = make([]wiz.WizLight, 0)
 	return d
-}
-
-type commandStatus struct {
-	running  bool
-	finished bool
-}
-
-func newCommandStatus() commandStatus {
-	return commandStatus{
-		running:  false,
-		finished: false,
-	}
-}
-
-func (s commandStatus) start() commandStatus {
-	s.running = true
-	s.finished = false
-	return s
-}
-
-func (s commandStatus) finish() commandStatus {
-	s.running = false
-	s.finished = true
-	return s
-}
-
-func (s commandStatus) reset() commandStatus {
-	s.running = false
-	s.finished = false
-	return s
-}
-
-func (s commandStatus) isFinished() bool {
-	return !s.running && s.finished
-}
-
-func (s commandStatus) isStarted() bool {
-	return s.running && !s.finished
-}
-
-func (s commandStatus) isRunning() bool {
-	return s.running
 }
 
 func discoverLightsCmd(c *client.Client, broadcastAddress string) tea.Cmd {
