@@ -2,6 +2,7 @@ package showlights
 
 import (
 	"gowizcli/client"
+	"gowizcli/ui/common"
 	"gowizcli/wiz"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -10,10 +11,10 @@ import (
 )
 
 type Model struct {
-	table   table.Model
-	loading bool
-	err     error
-	client  *client.Client
+	client    *client.Client
+	data      showLightsData
+	table     table.Model
+	cmdStatus common.CommandStatus
 }
 
 func NewModel(client *client.Client) Model {
@@ -39,11 +40,14 @@ func NewModel(client *client.Client) Model {
 
 	t.SetStyles(s)
 
+	status := common.NewCommandStatus()
+	status = status.Start()
+
 	return Model{
-		table:   t,
-		loading: true,
-		err:     nil,
-		client:  client,
+		client:    client,
+		data:      newShowLightsData(),
+		table:     t,
+		cmdStatus: status,
 	}
 }
 
@@ -56,7 +60,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case showDataLoadedMsg:
-		rows := []table.Row{}
+		m.cmdStatus = m.cmdStatus.Finish()
+		m.data = m.data.result(msg.lights)
+		var rows []table.Row = make([]table.Row, 0)
 		for _, l := range msg.lights {
 			rows = append(rows, table.Row{
 				l.Id,
@@ -65,12 +71,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			})
 		}
 		m.table.SetRows(rows)
-		m.loading = false
-		m.err = nil
 		return m, nil
 	case showDataErrorMsg:
-		m.err = msg.err
-		m.loading = false
+		m.cmdStatus = m.cmdStatus.Finish()
+		m.data = m.data.error(msg.err)
 		return m, nil
 	}
 
@@ -79,15 +83,41 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.loading {
+	if m.cmdStatus.IsRunning() {
 		return "Fetching lights..."
 	}
 
-	if m.err != nil {
+	if m.data.err != nil {
 		return "Error fetching lights"
 	}
 
 	return baseStyle.Render(m.table.View()) + "\n"
+}
+
+type showLightsData struct {
+	lights []wiz.WizLight
+	err    error
+}
+
+func newShowLightsData() showLightsData {
+	return showLightsData{
+		lights: make([]wiz.WizLight, 0),
+		err:    nil,
+	}
+}
+
+func (s showLightsData) result(lights []wiz.WizLight) showLightsData {
+	for _, l := range lights {
+		s.lights = append(s.lights, l)
+	}
+	s.err = nil
+	return s
+}
+
+func (s showLightsData) error(err error) showLightsData {
+	s.err = err
+	s.lights = make([]wiz.WizLight, 0)
+	return s
 }
 
 func fetchLightsCmd(c *client.Client) tea.Cmd {

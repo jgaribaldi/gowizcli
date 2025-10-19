@@ -72,6 +72,7 @@ func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 		m.discoverModel = discover.NewModel(m.client)
 		return m, m.discoverModel.Init()
 	case ViewShow:
+		m.showModel = showlights.NewModel(m.client)
 		return m, m.showModel.Init()
 	case ViewEraseAll:
 		return m, m.eraseAllModel.Init()
