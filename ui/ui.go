@@ -2,6 +2,7 @@ package ui
 
 import (
 	"gowizcli/client"
+	"gowizcli/ui/discover"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -29,7 +30,7 @@ type model struct {
 	currentView      ViewType
 	viewHistory      []ViewType
 	menuModel        MenuModel
-	discoverModel    DiscoverModel
+	discoverModel    discover.DiscoverModel
 	showModel        ShowModel
 	eraseAllModel    EraseAllModel
 	lightsOnOffModel LightOnOffModel
@@ -67,7 +68,7 @@ func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 	case ViewMenu:
 		return m, m.menuModel.Init()
 	case ViewDiscover:
-		m.discoverModel = NewDiscoverModel(m.client)
+		m.discoverModel = discover.NewDiscoverModel(m.client)
 		return m, m.discoverModel.Init()
 	case ViewShow:
 		return m, m.showModel.Init()
@@ -143,7 +144,7 @@ func InitialModel(client *client.Client) model {
 		currentView:      ViewMenu,
 		viewHistory:      []ViewType{},
 		menuModel:        NewMenuModel(),
-		discoverModel:    NewDiscoverModel(client),
+		discoverModel:    discover.NewDiscoverModel(client),
 		showModel:        NewShowModel(client),
 		eraseAllModel:    EraseAllModel{},
 		lightsOnOffModel: LightOnOffModel{},
