@@ -3,6 +3,7 @@ package ui
 import (
 	"gowizcli/client"
 	"gowizcli/ui/discover"
+	"gowizcli/ui/eraseall"
 	"gowizcli/ui/showlights"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -33,7 +34,7 @@ type model struct {
 	menuModel        MenuModel
 	discoverModel    discover.Model
 	showModel        showlights.Model
-	eraseAllModel    EraseAllModel
+	eraseAllModel    eraseall.Model
 	lightsOnOffModel LightOnOffModel
 	client           *client.Client
 }
@@ -75,6 +76,7 @@ func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 		m.showModel = showlights.NewModel(m.client)
 		return m, m.showModel.Init()
 	case ViewEraseAll:
+		m.eraseAllModel = eraseall.NewModel(m.client)
 		return m, m.eraseAllModel.Init()
 	case ViewTurnOn, ViewTurnOff:
 		return m, m.lightsOnOffModel.Init()
@@ -148,7 +150,7 @@ func InitialModel(client *client.Client) model {
 		menuModel:        NewMenuModel(),
 		discoverModel:    discover.NewModel(client),
 		showModel:        showlights.NewModel(client),
-		eraseAllModel:    EraseAllModel{},
+		eraseAllModel:    eraseall.NewModel(client),
 		lightsOnOffModel: LightOnOffModel{},
 		client:           client,
 	}
@@ -167,21 +169,6 @@ func navigateBack(m model) model {
 		m.viewHistory = m.viewHistory[:lastIndex]
 	}
 	return m
-}
-
-type EraseAllModel struct {
-}
-
-func (m EraseAllModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m EraseAllModel) Update(msg tea.Msg) (EraseAllModel, tea.Cmd) {
-	return m, nil
-}
-
-func (m EraseAllModel) View() string {
-	return "Viewing the erase all lights screen - Esc to go back to main menu"
 }
 
 type LightOnOffModel struct {

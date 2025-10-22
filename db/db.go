@@ -75,7 +75,7 @@ func (c Connection) FindAll() ([]wiz.WizLight, error) {
 
 func (c Connection) EraseAll() {
 	tableName := "stored_lights"
-	c.db.Exec(fmt.Sprintf("DROP TABLE %s", tableName))
+	c.db.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
 }
 
 type storedWizLight struct {
