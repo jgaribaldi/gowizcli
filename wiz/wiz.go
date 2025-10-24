@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type WizClient interface {
+type Client interface {
 	Discover(bcastAddr string) ([]Light, error)
 	TurnOn(destAddr string) error
 	TurnOff(destAddr string) error
