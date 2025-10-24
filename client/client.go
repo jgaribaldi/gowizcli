@@ -53,7 +53,6 @@ func (c Client) executeDiscover(bcastAddr string) ([]wiz.WizLight, error) {
 		return nil, err
 	}
 	for _, light := range lights {
-		fmt.Printf("Found new light with MAC Address %s and IP Address %s\n", light.MacAddress, light.IpAddress)
 		_, err := c.lightsDb.Upsert(light)
 		if err != nil {
 			return nil, err
@@ -63,9 +62,6 @@ func (c Client) executeDiscover(bcastAddr string) ([]wiz.WizLight, error) {
 }
 
 func (c Client) executeShow() ([]wiz.WizLight, error) {
-	fmt.Println("Lights")
-	fmt.Println("------")
-
 	lights, err := c.lightsDb.FindAll()
 	if err != nil {
 		return nil, err
