@@ -16,27 +16,22 @@ const (
 	ViewDiscover
 	ViewShow
 	ViewEraseAll
-	ViewTurnOn
-	ViewTurnOff
 )
 
 var viewCommandMap = map[client.CommandType]ViewType{
 	client.Discover: ViewDiscover,
 	client.Show:     ViewShow,
 	client.Reset:    ViewEraseAll,
-	client.TurnOn:   ViewTurnOn,
-	client.TurnOff:  ViewTurnOff,
 }
 
 type model struct {
-	currentView      ViewType
-	viewHistory      []ViewType
-	menuModel        MenuModel
-	discoverModel    discover.Model
-	showModel        showlights.Model
-	eraseAllModel    eraseall.Model
-	lightsOnOffModel LightOnOffModel
-	client           *client.Client
+	currentView   ViewType
+	viewHistory   []ViewType
+	menuModel     MenuModel
+	discoverModel discover.Model
+	showModel     showlights.Model
+	eraseAllModel eraseall.Model
+	client        *client.Client
 }
 
 func (m model) Init() tea.Cmd {
@@ -78,8 +73,6 @@ func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 	case ViewEraseAll:
 		m.eraseAllModel = eraseall.NewModel(m.client)
 		return m, m.eraseAllModel.Init()
-	case ViewTurnOn, ViewTurnOff:
-		return m, m.lightsOnOffModel.Init()
 	}
 
 	return m, nil
@@ -99,9 +92,6 @@ func (m model) updateCurrentView(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case ViewEraseAll:
 		m.eraseAllModel, cmd = m.eraseAllModel.Update(msg)
-		return m, cmd
-	case ViewTurnOn, ViewTurnOff:
-		m.lightsOnOffModel, cmd = m.lightsOnOffModel.Update(msg)
 		return m, cmd
 	}
 	return m, nil
@@ -137,22 +127,19 @@ func (m model) View() string {
 		return m.showModel.View()
 	case ViewEraseAll:
 		return m.eraseAllModel.View()
-	case ViewTurnOn, ViewTurnOff:
-		return m.lightsOnOffModel.View()
 	}
 	return ""
 }
 
 func InitialModel(client *client.Client) model {
 	return model{
-		currentView:      ViewMenu,
-		viewHistory:      []ViewType{},
-		menuModel:        NewMenuModel(),
-		discoverModel:    discover.NewModel(client),
-		showModel:        showlights.NewModel(client),
-		eraseAllModel:    eraseall.NewModel(client),
-		lightsOnOffModel: LightOnOffModel{},
-		client:           client,
+		currentView:   ViewMenu,
+		viewHistory:   []ViewType{},
+		menuModel:     NewMenuModel(),
+		discoverModel: discover.NewModel(client),
+		showModel:     showlights.NewModel(client),
+		eraseAllModel: eraseall.NewModel(client),
+		client:        client,
 	}
 }
 
@@ -169,26 +156,4 @@ func navigateBack(m model) model {
 		m.viewHistory = m.viewHistory[:lastIndex]
 	}
 	return m
-}
-
-type LightOnOffModel struct {
-}
-
-func (m LightOnOffModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m LightOnOffModel) Update(msg tea.Msg) (LightOnOffModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
-			return m, tea.Quit
-		}
-	}
-	return m, nil
-}
-
-func (m LightOnOffModel) View() string {
-	return "Viewing the lights on/off screen - Esc to go back to main menu"
 }
