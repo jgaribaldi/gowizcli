@@ -11,8 +11,8 @@ import (
 )
 
 type LightsDatabase interface {
-	Upsert(bulb wiz.WizLight) (*wiz.WizLight, error)
-	FindAll() ([]wiz.WizLight, error)
+	Upsert(bulb wiz.Light) (*wiz.Light, error)
+	FindAll() ([]wiz.Light, error)
 	EraseAll()
 }
 
@@ -30,7 +30,7 @@ func NewConnection(filename string) (*Connection, error) {
 	return &Connection{db: db}, nil
 }
 
-func (c Connection) Upsert(bulb wiz.WizLight) (*wiz.WizLight, error) {
+func (c Connection) Upsert(bulb wiz.Light) (*wiz.Light, error) {
 	storedWizLight := storedWizLight{
 		ID:         bulb.Id,
 		MacAddress: bulb.MacAddress,
@@ -45,14 +45,14 @@ func (c Connection) Upsert(bulb wiz.WizLight) (*wiz.WizLight, error) {
 		return nil, result.Error
 	}
 
-	return &wiz.WizLight{
+	return &wiz.Light{
 		Id:         storedWizLight.ID,
 		MacAddress: storedWizLight.MacAddress,
 		IpAddress:  storedWizLight.IpAddress,
 	}, nil
 }
 
-func (c Connection) FindAll() ([]wiz.WizLight, error) {
+func (c Connection) FindAll() ([]wiz.Light, error) {
 	var storedWizLights []storedWizLight
 	storedWizLights = make([]storedWizLight, 0)
 	queryResult := c.db.Find(&storedWizLights)
@@ -61,10 +61,10 @@ func (c Connection) FindAll() ([]wiz.WizLight, error) {
 		return nil, queryResult.Error
 	}
 
-	var result []wiz.WizLight
-	result = make([]wiz.WizLight, 0)
+	var result []wiz.Light
+	result = make([]wiz.Light, 0)
 	for _, l := range storedWizLights {
-		result = append(result, wiz.WizLight{
+		result = append(result, wiz.Light{
 			Id:         l.ID,
 			IpAddress:  l.IpAddress,
 			MacAddress: l.MacAddress,

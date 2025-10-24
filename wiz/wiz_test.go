@@ -8,12 +8,12 @@ import (
 func TestWizDiscover(t *testing.T) {
 	var tests = []struct {
 		response QueryResponse
-		want     []WizLight
+		want     []Light
 	}{
 		{QueryResponse{
 			SourceIpAddress: "192.168.1.174",
 			Response:        []byte("{\"method\":\"getPilot\",\"env\":\"pro\",\"result\":{\"mac\":\"cc40857ce53c\",\"rssi\":-66,\"state\":true,\"sceneId\":8,\"speed\":100,\"dimming\":100}}"),
-		}, []WizLight{
+		}, []Light{
 			{MacAddress: "cc40857ce53c", IpAddress: "192.168.1.174"},
 		}},
 	}

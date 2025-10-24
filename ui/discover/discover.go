@@ -168,18 +168,18 @@ func octetValidator(octet string) error {
 }
 
 type discoverData struct {
-	lights []wiz.WizLight
+	lights []wiz.Light
 	err    error
 }
 
 func newDiscoverData() discoverData {
 	return discoverData{
-		lights: make([]wiz.WizLight, 0),
+		lights: make([]wiz.Light, 0),
 		err:    nil,
 	}
 }
 
-func (d discoverData) result(lights []wiz.WizLight) discoverData {
+func (d discoverData) result(lights []wiz.Light) discoverData {
 	for _, l := range lights {
 		d.lights = append(d.lights, l)
 	}
@@ -189,7 +189,7 @@ func (d discoverData) result(lights []wiz.WizLight) discoverData {
 
 func (d discoverData) error(err error) discoverData {
 	d.err = err
-	d.lights = make([]wiz.WizLight, 0)
+	d.lights = make([]wiz.Light, 0)
 	return d
 }
 
@@ -210,7 +210,7 @@ func discoverLightsCmd(c *client.Client, broadcastAddress string) tea.Cmd {
 }
 
 type discoverOkMsg struct {
-	lights []wiz.WizLight
+	lights []wiz.Light
 }
 
 type discoverErrorMsg struct {

@@ -7,12 +7,12 @@ import (
 )
 
 type WizClient interface {
-	Discover(bcastAddr string) ([]WizLight, error)
+	Discover(bcastAddr string) ([]Light, error)
 	TurnOn(destAddr string) error
 	TurnOff(destAddr string) error
 }
 
-type WizLight struct {
+type Light struct {
 	Id         string
 	MacAddress string
 	IpAddress  string
@@ -30,7 +30,7 @@ func NewWiz(
 	}
 }
 
-func (w Wiz) Discover(bcastAddr string) ([]WizLight, error) {
+func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 	getPilot := NewRequestBuilder().
 		WithMethod("getPilot").
 		Build()
@@ -44,8 +44,8 @@ func (w Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 		return nil, err
 	}
 
-	var result []WizLight
-	result = make([]WizLight, 0)
+	var result []Light
+	result = make([]Light, 0)
 
 	for _, r := range queryResponse {
 		getPilotResult := Response{}
@@ -54,7 +54,7 @@ func (w Wiz) Discover(bcastAddr string) ([]WizLight, error) {
 		if err != nil {
 			return nil, err
 		} else {
-			result = append(result, WizLight{
+			result = append(result, Light{
 				Id:         uuid.New().String(),
 				MacAddress: getPilotResult.Result.Mac,
 				IpAddress:  r.SourceIpAddress,

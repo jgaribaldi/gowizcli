@@ -95,18 +95,18 @@ func (m Model) View() string {
 }
 
 type showLightsData struct {
-	lights []wiz.WizLight
+	lights []wiz.Light
 	err    error
 }
 
 func newShowLightsData() showLightsData {
 	return showLightsData{
-		lights: make([]wiz.WizLight, 0),
+		lights: make([]wiz.Light, 0),
 		err:    nil,
 	}
 }
 
-func (s showLightsData) result(lights []wiz.WizLight) showLightsData {
+func (s showLightsData) result(lights []wiz.Light) showLightsData {
 	for _, l := range lights {
 		s.lights = append(s.lights, l)
 	}
@@ -116,7 +116,7 @@ func (s showLightsData) result(lights []wiz.WizLight) showLightsData {
 
 func (s showLightsData) error(err error) showLightsData {
 	s.err = err
-	s.lights = make([]wiz.WizLight, 0)
+	s.lights = make([]wiz.Light, 0)
 	return s
 }
 
@@ -135,7 +135,7 @@ func fetchLightsCmd(c *client.Client) tea.Cmd {
 }
 
 type showDataLoadedMsg struct {
-	lights []wiz.WizLight
+	lights []wiz.Light
 }
 
 type showDataErrorMsg struct {

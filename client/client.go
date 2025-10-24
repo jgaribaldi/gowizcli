@@ -24,7 +24,7 @@ func NewClient(
 	}, nil
 }
 
-func (c Client) Execute(command Command) ([]wiz.WizLight, error) {
+func (c Client) Execute(command Command) ([]wiz.Light, error) {
 	switch command.CommandType {
 
 	case Discover:
@@ -47,7 +47,7 @@ func (c Client) Execute(command Command) ([]wiz.WizLight, error) {
 	}
 }
 
-func (c Client) executeDiscover(bcastAddr string) ([]wiz.WizLight, error) {
+func (c Client) executeDiscover(bcastAddr string) ([]wiz.Light, error) {
 	lights, err := c.wizClient.Discover(bcastAddr)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (c Client) executeDiscover(bcastAddr string) ([]wiz.WizLight, error) {
 	return lights, nil
 }
 
-func (c Client) executeShow() ([]wiz.WizLight, error) {
+func (c Client) executeShow() ([]wiz.Light, error) {
 	lights, err := c.lightsDb.FindAll()
 	if err != nil {
 		return nil, err
@@ -70,15 +70,15 @@ func (c Client) executeShow() ([]wiz.WizLight, error) {
 	return lights, nil
 }
 
-func (c Client) executeReset() ([]wiz.WizLight, error) {
+func (c Client) executeReset() ([]wiz.Light, error) {
 	c.lightsDb.EraseAll()
 	return nil, nil
 }
 
-func (c Client) executeTurnOn(destAddr string) ([]wiz.WizLight, error) {
+func (c Client) executeTurnOn(destAddr string) ([]wiz.Light, error) {
 	return nil, c.wizClient.TurnOn(destAddr)
 }
 
-func (c Client) executeTurnOff(destAddr string) ([]wiz.WizLight, error) {
+func (c Client) executeTurnOff(destAddr string) ([]wiz.Light, error) {
 	return nil, c.wizClient.TurnOff(destAddr)
 }
