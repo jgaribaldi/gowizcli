@@ -12,9 +12,9 @@ import (
 
 type Model struct {
 	client    *client.Client
-	data      showLightsData
 	table     table.Model
 	cmdStatus common.CmdStatus
+	data      data
 }
 
 func NewModel(client *client.Client) Model {
@@ -44,9 +44,14 @@ func NewModel(client *client.Client) Model {
 	status := *common.NewCmdStatus()
 	status = status.Start()
 
+	data := data{
+		lights: []wiz.Light{},
+		err:    nil,
+	}
+
 	return Model{
 		client:    client,
-		data:      newShowLightsData(),
+		data:      data,
 		table:     t,
 		cmdStatus: status,
 	}
@@ -73,7 +78,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 	case showDataErrorMsg:
 		m.cmdStatus = m.cmdStatus.Finish()
-		m.data = m.data.error(msg.err)
+		m.data.err = msg.err
 		return m, nil
 	}
 
@@ -120,32 +125,6 @@ func (m Model) View() string {
 	return baseStyle.Render(m.table.View()) + "\n"
 }
 
-type showLightsData struct {
-	lights []wiz.Light
-	err    error
-}
-
-func newShowLightsData() showLightsData {
-	return showLightsData{
-		lights: make([]wiz.Light, 0),
-		err:    nil,
-	}
-}
-
-func (s showLightsData) result(lights []wiz.Light) showLightsData {
-	for _, l := range lights {
-		s.lights = append(s.lights, l)
-	}
-	s.err = nil
-	return s
-}
-
-func (s showLightsData) error(err error) showLightsData {
-	s.err = err
-	s.lights = make([]wiz.Light, 0)
-	return s
-}
-
 func fetchLightsCmd(c *client.Client) tea.Cmd {
 	return func() tea.Msg {
 		cmd := client.Command{
@@ -171,3 +150,14 @@ type showDataErrorMsg struct {
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
+
+type data struct {
+	lights []wiz.Light
+	err    error
+}
+
+func (d data) result(lights []wiz.Light) data {
+	d.lights = make([]wiz.Light, len(lights))
+	copy(d.lights, lights)
+	return d
+}
