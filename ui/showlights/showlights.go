@@ -12,9 +12,9 @@ import (
 
 type Model struct {
 	client    *client.Client
-	table     table.Model
 	cmdStatus common.CmdStatus
-	data      data
+	data      fetchDoneMsg
+	table     table.Model
 }
 
 func NewModel(client *client.Client) Model {
@@ -44,42 +44,42 @@ func NewModel(client *client.Client) Model {
 	status := *common.NewCmdStatus()
 	status = status.Start()
 
-	data := data{
+	data := fetchDoneMsg{
 		lights: []wiz.Light{},
 		err:    nil,
 	}
 
 	return Model{
 		client:    client,
+		cmdStatus: status,
 		data:      data,
 		table:     t,
-		cmdStatus: status,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return fetchLightsCmd(m.client)
+	return fetchCmd(m.client)
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case showDataLoadedMsg:
+	case fetchDoneMsg:
+		m.data = msg
 		m.cmdStatus = m.cmdStatus.Finish()
-		m.data = m.data.result(msg.lights)
 
-		var rows []table.Row = make([]table.Row, len(msg.lights))
-		for idx, l := range msg.lights {
-			rows[idx] = lightToRow(l)
+		if msg.err != nil {
+			return m, nil
+		} else {
+			var rows []table.Row = make([]table.Row, len(msg.lights))
+			for idx, l := range msg.lights {
+				rows[idx] = lightToRow(l)
+			}
+			m.table.SetRows(rows)
+
+			return m, nil
 		}
-		m.table.SetRows(rows)
-
-		return m, nil
-	case showDataErrorMsg:
-		m.cmdStatus = m.cmdStatus.Finish()
-		m.data.err = msg.err
-		return m, nil
 	}
 
 	m.table, cmd = m.table.Update(msg)
@@ -125,39 +125,25 @@ func (m Model) View() string {
 	return baseStyle.Render(m.table.View()) + "\n"
 }
 
-func fetchLightsCmd(c *client.Client) tea.Cmd {
+func fetchCmd(c *client.Client) tea.Cmd {
 	return func() tea.Msg {
 		cmd := client.Command{
 			CommandType: client.Show,
 			Parameters:  []string{},
 		}
 		result, err := c.Execute(cmd)
-		if err != nil {
-			return showDataErrorMsg{err: err}
+		return fetchDoneMsg{
+			lights: result,
+			err:    err,
 		}
-		return showDataLoadedMsg{lights: result}
 	}
-}
-
-type showDataLoadedMsg struct {
-	lights []wiz.Light
-}
-
-type showDataErrorMsg struct {
-	err error
 }
 
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-type data struct {
+type fetchDoneMsg struct {
 	lights []wiz.Light
 	err    error
-}
-
-func (d data) result(lights []wiz.Light) data {
-	d.lights = make([]wiz.Light, len(lights))
-	copy(d.lights, lights)
-	return d
 }
