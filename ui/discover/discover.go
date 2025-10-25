@@ -16,7 +16,7 @@ type Model struct {
 	client    *client.Client
 	input     ipAddressInput
 	data      discoverData
-	cmdStatus common.CommandStatus
+	cmdStatus common.CmdStatus
 }
 
 func NewModel(client *client.Client) Model {
@@ -24,7 +24,7 @@ func NewModel(client *client.Client) Model {
 		client:    client,
 		input:     newIpAddressInput(),
 		data:      newDiscoverData(),
-		cmdStatus: common.NewCommandStatus(),
+		cmdStatus: *common.NewCmdStatus(),
 	}
 }
 
@@ -41,13 +41,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyShiftTab:
 			m.input = m.input.previousOctet()
 		case tea.KeyEnter:
-			if !m.cmdStatus.IsStarted() {
+			if m.cmdStatus.State == common.Ready {
 				broadcastAddress := m.input.getValue()
 				m.cmdStatus = m.cmdStatus.Start()
 				return m, discoverLightsCmd(m.client, broadcastAddress)
 			}
-			if m.cmdStatus.IsFinished() {
-				m.cmdStatus = m.cmdStatus.Reset()
+			if m.cmdStatus.State == common.Done {
+				m.cmdStatus = *common.NewCmdStatus()
+				m.data = newDiscoverData()
 				return m, nil
 			}
 		}
@@ -66,11 +67,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.cmdStatus.IsRunning() {
+	if m.cmdStatus.State == common.Running {
 		return "Executing discovery..."
 	}
 
-	if m.cmdStatus.IsFinished() {
+	if m.cmdStatus.State == common.Done {
 		if m.data.err != nil {
 			return fmt.Sprintf("Error executing discover: %s", m.data.err)
 		} else {

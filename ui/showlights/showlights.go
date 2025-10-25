@@ -14,7 +14,7 @@ type Model struct {
 	client    *client.Client
 	data      showLightsData
 	table     table.Model
-	cmdStatus common.CommandStatus
+	cmdStatus common.CmdStatus
 }
 
 func NewModel(client *client.Client) Model {
@@ -41,7 +41,7 @@ func NewModel(client *client.Client) Model {
 
 	t.SetStyles(s)
 
-	status := common.NewCommandStatus()
+	status := *common.NewCmdStatus()
 	status = status.Start()
 
 	return Model{
@@ -109,7 +109,7 @@ func lightToRow(l wiz.Light) table.Row {
 }
 
 func (m Model) View() string {
-	if m.cmdStatus.IsRunning() {
+	if m.cmdStatus.State == common.Running {
 		return "Fetching lights..."
 	}
 

@@ -10,14 +10,14 @@ import (
 
 type Model struct {
 	client    *client.Client
-	cmdStatus common.CommandStatus
+	cmdStatus common.CmdStatus
 	err       error
 }
 
 func NewModel(client *client.Client) Model {
 	return Model{
 		client:    client,
-		cmdStatus: common.NewCommandStatus(),
+		cmdStatus: *common.NewCmdStatus(),
 		err:       nil,
 	}
 }
@@ -31,7 +31,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "y", "Y":
-			if m.cmdStatus.IsFinished() || m.cmdStatus.IsRunning() {
+			if m.cmdStatus.State == common.Running || m.cmdStatus.State == common.Done {
 				return m, nil
 			}
 			m.cmdStatus = m.cmdStatus.Start()
@@ -48,11 +48,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.cmdStatus.IsRunning() {
+	if m.cmdStatus.State == common.Running {
 		return "Erasing all lights..."
 	}
 
-	if m.cmdStatus.IsFinished() {
+	if m.cmdStatus.State == common.Done {
 		if m.err != nil {
 			return fmt.Sprintf("Error erasing lights: %s - ESC to go back to main menu", m.err)
 		}

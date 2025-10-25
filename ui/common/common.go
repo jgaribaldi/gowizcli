@@ -1,43 +1,29 @@
 package common
 
-type CommandStatus struct {
-	running  bool
-	finished bool
+type state int
+
+const (
+	Ready state = iota
+	Running
+	Done
+)
+
+type CmdStatus struct {
+	State state
 }
 
-func NewCommandStatus() CommandStatus {
-	return CommandStatus{
-		running:  false,
-		finished: false,
+func NewCmdStatus() *CmdStatus {
+	return &CmdStatus{
+		State: Ready,
 	}
 }
 
-func (s CommandStatus) Start() CommandStatus {
-	s.running = true
-	s.finished = false
-	return s
+func (c CmdStatus) Start() CmdStatus {
+	c.State = Running
+	return c
 }
 
-func (s CommandStatus) Finish() CommandStatus {
-	s.running = false
-	s.finished = true
-	return s
-}
-
-func (s CommandStatus) Reset() CommandStatus {
-	s.running = false
-	s.finished = false
-	return s
-}
-
-func (s CommandStatus) IsFinished() bool {
-	return !s.running && s.finished
-}
-
-func (s CommandStatus) IsStarted() bool {
-	return s.running && !s.finished
-}
-
-func (s CommandStatus) IsRunning() bool {
-	return s.running
+func (c CmdStatus) Finish() CmdStatus {
+	c.State = Done
+	return c
 }
