@@ -22,6 +22,7 @@ func NewModel(client *client.Client) Model {
 		{Title: "ID", Width: 40},
 		{Title: "MAC Address", Width: 20},
 		{Title: "IP Address", Width: 20},
+		{Title: "Status", Width: 10},
 	}
 
 	t := table.New(
@@ -62,15 +63,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case showDataLoadedMsg:
 		m.cmdStatus = m.cmdStatus.Finish()
 		m.data = m.data.result(msg.lights)
-		var rows []table.Row = make([]table.Row, 0)
-		for _, l := range msg.lights {
-			rows = append(rows, table.Row{
-				l.Id,
-				l.MacAddress,
-				l.IpAddress,
-			})
+
+		var rows []table.Row = make([]table.Row, len(msg.lights))
+		for idx, l := range msg.lights {
+			rows[idx] = lightToRow(l)
 		}
 		m.table.SetRows(rows)
+
 		return m, nil
 	case showDataErrorMsg:
 		m.cmdStatus = m.cmdStatus.Finish()
@@ -80,6 +79,33 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+func lightToRow(l wiz.Light) table.Row {
+	if l.IsOn != nil {
+		if *l.IsOn {
+			return table.Row{
+				l.Id,
+				l.MacAddress,
+				l.IpAddress,
+				"On",
+			}
+		} else {
+			return table.Row{
+				l.Id,
+				l.MacAddress,
+				l.IpAddress,
+				"Off",
+			}
+		}
+	} else {
+		return table.Row{
+			l.Id,
+			l.MacAddress,
+			l.IpAddress,
+			"Unknown",
+		}
+	}
 }
 
 func (m Model) View() string {

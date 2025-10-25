@@ -2,6 +2,7 @@ package wiz
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -10,12 +11,14 @@ type Client interface {
 	Discover(bcastAddr string) ([]Light, error)
 	TurnOn(destAddr string) error
 	TurnOff(destAddr string) error
+	IsTurnedOn(destAddr string) (*bool, error)
 }
 
 type Light struct {
 	Id         string
 	MacAddress string
 	IpAddress  string
+	IsOn       *bool
 }
 
 type Wiz struct {
@@ -66,9 +69,6 @@ func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 }
 
 func (w Wiz) TurnOn(destAddr string) error {
-	params := make(map[string]any)
-	params["state"] = true
-
 	turnOn := NewRequestBuilder().
 		WithMethod("setState").
 		WithState(true).
@@ -87,9 +87,6 @@ func (w Wiz) TurnOn(destAddr string) error {
 }
 
 func (w Wiz) TurnOff(destAddr string) error {
-	params := make(map[string]any)
-	params["state"] = false
-
 	turnOff := NewRequestBuilder().
 		WithMethod("setState").
 		WithState(false).
@@ -105,4 +102,35 @@ func (w Wiz) TurnOff(destAddr string) error {
 	}
 
 	return nil
+}
+
+func (w Wiz) IsTurnedOn(destAddr string) (*bool, error) {
+	params := make(map[string]any)
+	params["state"] = false
+
+	isTurnedOn := NewRequestBuilder().
+		WithMethod("getPilot").
+		Build()
+	mIsTurnedOn, err := json.Marshal(isTurnedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	isTurnedOnResponse, err := w.query(destAddr, mIsTurnedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(isTurnedOnResponse) > 0 {
+		response := Response{}
+		err = json.Unmarshal(isTurnedOnResponse[0].Response, &response)
+		if err != nil {
+			return nil, err
+		}
+
+		isOn := response.Result.State
+		return &isOn, nil
+	} else {
+		return nil, fmt.Errorf("no response from device")
+	}
 }

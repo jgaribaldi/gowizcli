@@ -67,7 +67,19 @@ func (c Client) executeShow() ([]wiz.Light, error) {
 		return nil, err
 	}
 
-	return lights, nil
+	var result []wiz.Light = make([]wiz.Light, len(lights))
+	for idx, l := range lights {
+		result[idx].Id = l.Id
+		result[idx].IpAddress = l.IpAddress
+		result[idx].MacAddress = l.MacAddress
+
+		isOn, err := c.wizClient.IsTurnedOn(l.IpAddress)
+		if err == nil {
+			result[idx].IsOn = isOn
+		}
+	}
+
+	return result, nil
 }
 
 func (c Client) executeReset() ([]wiz.Light, error) {
