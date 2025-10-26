@@ -38,6 +38,10 @@ func NewModel(client *client.Client) Model {
 		BorderForeground(lipgloss.Color("240")).
 		BorderBottom(true).
 		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(true)
 
 	t.SetStyles(s)
 
@@ -68,6 +72,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case fetchDoneMsg:
 		m.data = msg
 		m.cmdStatus = m.cmdStatus.Finish()
+		m.table.Focus()
 
 		if msg.err != nil {
 			return m, nil
