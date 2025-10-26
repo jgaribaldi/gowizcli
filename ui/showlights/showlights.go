@@ -55,7 +55,7 @@ func NewModel(client *client.Client) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return fetchCmd(m.client)
+	return m.fetchCmd()
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -83,7 +83,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keyMap.Refresh):
 			m.cmdStatus = resetStatus()
 			m.data = resetData()
-			return m, fetchCmd(m.client)
+			return m, m.fetchCmd()
 		}
 	}
 
@@ -142,13 +142,13 @@ func (m Model) View() string {
 	return baseStyle.Render(m.table.View()) + "\n"
 }
 
-func fetchCmd(c *client.Client) tea.Cmd {
+func (m Model) fetchCmd() tea.Cmd {
 	return func() tea.Msg {
 		cmd := client.Command{
 			CommandType: client.Show,
 			Parameters:  []string{},
 		}
-		result, err := c.Execute(cmd)
+		result, err := m.client.Execute(cmd)
 		return fetchDoneMsg{
 			lights: result,
 			err:    err,
