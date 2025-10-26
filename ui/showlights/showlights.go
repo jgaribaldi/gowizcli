@@ -5,6 +5,7 @@ import (
 	"gowizcli/ui/common"
 	"gowizcli/wiz"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -45,18 +46,10 @@ func NewModel(client *client.Client) Model {
 
 	t.SetStyles(s)
 
-	status := *common.NewCmdStatus()
-	status = status.Start()
-
-	data := fetchDoneMsg{
-		lights: []wiz.Light{},
-		err:    nil,
-	}
-
 	return Model{
 		client:    client,
-		cmdStatus: status,
-		data:      data,
+		cmdStatus: resetStatus(),
+		data:      resetData(),
 		table:     t,
 	}
 }
@@ -85,10 +78,29 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 			return m, nil
 		}
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, keyMap.Refresh):
+			m.cmdStatus = resetStatus()
+			m.data = resetData()
+			return m, fetchCmd(m.client)
+		}
 	}
 
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+func resetStatus() common.CmdStatus {
+	status := common.NewCmdStatus()
+	return status.Start()
+}
+
+func resetData() fetchDoneMsg {
+	return fetchDoneMsg{
+		lights: []wiz.Light{},
+		err:    nil,
+	}
 }
 
 func lightToRow(l wiz.Light) table.Row {
@@ -151,4 +163,10 @@ var baseStyle = lipgloss.NewStyle().
 type fetchDoneMsg struct {
 	lights []wiz.Light
 	err    error
+}
+
+var keyMap = struct {
+	Refresh key.Binding
+}{
+	Refresh: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
 }
