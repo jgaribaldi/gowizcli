@@ -75,7 +75,28 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				rows[idx] = lightToRow(l)
 			}
 			m.table.SetRows(rows)
+			return m, nil
+		}
+	case switchDoneMsg:
+		if msg.err != nil {
+			return m, nil
+		} else {
+			var rows []table.Row = make([]table.Row, len(m.data.lights))
+			var lights []wiz.Light = make([]wiz.Light, len(m.data.lights))
 
+			copy(rows, m.table.Rows())
+			copy(lights, m.data.lights)
+
+			for idx, l := range m.data.lights {
+				if l.Id == msg.light.Id {
+					rows[idx] = lightToRow(msg.light)
+					lights[idx] = msg.light
+					break
+				}
+			}
+
+			m.table.SetRows(rows)
+			m.data.lights = lights
 			return m, nil
 		}
 	case tea.KeyMsg:
@@ -84,6 +105,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.cmdStatus = resetStatus()
 			m.data = resetData()
 			return m, m.fetchCmd()
+		case key.Matches(msg, keyMap.Switch):
+			return m, m.switchLightCmd()
 		}
 	}
 
@@ -156,6 +179,52 @@ func (m Model) fetchCmd() tea.Cmd {
 	}
 }
 
+func (m Model) switchLightCmd() tea.Cmd {
+	return func() tea.Msg {
+		if len(m.data.lights) > 0 {
+			selectedRow := m.table.Cursor()
+			if selectedRow < len(m.data.lights) {
+				selectedLight := m.data.lights[selectedRow]
+
+				cmd := switchCommand(selectedLight)
+				result, err := m.client.Execute(cmd)
+
+				if len(result) > 0 {
+					return switchDoneMsg{
+						light: result[0],
+						err:   err,
+					}
+				} else {
+					return switchDoneMsg{
+						err: err,
+					}
+				}
+			}
+			return nil
+		}
+		return nil
+	}
+}
+
+func switchCommand(light wiz.Light) client.Command {
+	if light.IsOn != nil && *light.IsOn {
+		return client.Command{
+			CommandType: client.TurnOff,
+			Parameters: []string{
+				light.Id,
+			},
+		}
+
+	} else {
+		return client.Command{
+			CommandType: client.TurnOn,
+			Parameters: []string{
+				light.Id,
+			},
+		}
+	}
+}
+
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
@@ -165,8 +234,15 @@ type fetchDoneMsg struct {
 	err    error
 }
 
+type switchDoneMsg struct {
+	light wiz.Light
+	err   error
+}
+
 var keyMap = struct {
 	Refresh key.Binding
+	Switch  key.Binding
 }{
 	Refresh: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
+	Switch:  key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "switch light")),
 }

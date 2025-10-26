@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"gowizcli/wiz"
 	"time"
@@ -14,6 +15,7 @@ type LightsDatabase interface {
 	Upsert(bulb wiz.Light) (*wiz.Light, error)
 	FindAll() ([]wiz.Light, error)
 	EraseAll()
+	FindById(id string) (*wiz.Light, error)
 }
 
 type Connection struct {
@@ -76,6 +78,24 @@ func (c Connection) FindAll() ([]wiz.Light, error) {
 func (c Connection) EraseAll() {
 	tableName := "stored_lights"
 	c.db.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+}
+
+func (c Connection) FindById(id string) (*wiz.Light, error) {
+	storedWizLight := storedWizLight{ID: id}
+
+	queryResult := c.db.First(&storedWizLight)
+	if queryResult.Error != nil && errors.Is(queryResult.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("id %s not found", id)
+	}
+	if queryResult.Error != nil {
+		return nil, queryResult.Error
+	}
+
+	return &wiz.Light{
+		Id:         storedWizLight.ID,
+		IpAddress:  storedWizLight.IpAddress,
+		MacAddress: storedWizLight.MacAddress,
+	}, nil
 }
 
 type storedWizLight struct {

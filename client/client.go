@@ -73,9 +73,9 @@ func (c Client) executeShow() ([]wiz.Light, error) {
 		result[idx].IpAddress = l.IpAddress
 		result[idx].MacAddress = l.MacAddress
 
-		isOn, err := c.wizClient.IsTurnedOn(l.IpAddress)
+		light, err := c.wizClient.Status(&l)
 		if err == nil {
-			result[idx].IsOn = isOn
+			result[idx].IsOn = light.IsOn
 		}
 	}
 
@@ -87,10 +87,34 @@ func (c Client) executeReset() ([]wiz.Light, error) {
 	return nil, nil
 }
 
-func (c Client) executeTurnOn(destAddr string) ([]wiz.Light, error) {
-	return nil, c.wizClient.TurnOn(destAddr)
+func (c Client) executeTurnOn(lightId string) ([]wiz.Light, error) {
+	light, err := c.lightsDb.FindById(lightId)
+	if err != nil {
+		return nil, err
+	}
+
+	newLight, err := c.wizClient.TurnOn(light)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []wiz.Light = make([]wiz.Light, 1)
+	result[0] = *newLight
+	return result, nil
 }
 
-func (c Client) executeTurnOff(destAddr string) ([]wiz.Light, error) {
-	return nil, c.wizClient.TurnOff(destAddr)
+func (c Client) executeTurnOff(lightId string) ([]wiz.Light, error) {
+	light, err := c.lightsDb.FindById(lightId)
+	if err != nil {
+		return nil, err
+	}
+
+	newLight, err := c.wizClient.TurnOff(light)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []wiz.Light = make([]wiz.Light, 1)
+	result[0] = *newLight
+	return result, nil
 }

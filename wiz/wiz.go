@@ -9,9 +9,9 @@ import (
 
 type Client interface {
 	Discover(bcastAddr string) ([]Light, error)
-	TurnOn(destAddr string) error
-	TurnOff(destAddr string) error
-	IsTurnedOn(destAddr string) (*bool, error)
+	TurnOn(light *Light) (*Light, error)
+	TurnOff(light *Light) (*Light, error)
+	Status(light *Light) (*Light, error)
 }
 
 type Light struct {
@@ -68,69 +68,70 @@ func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 	return result, nil
 }
 
-func (w Wiz) TurnOn(destAddr string) error {
+func (w Wiz) TurnOn(light *Light) (*Light, error) {
 	turnOn := NewRequestBuilder().
 		WithMethod("setState").
 		WithState(true).
 		Build()
 	mTurnOn, err := json.Marshal(turnOn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = w.query(destAddr, mTurnOn)
+	_, err = w.query(light.IpAddress, mTurnOn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return w.Status(light)
 }
 
-func (w Wiz) TurnOff(destAddr string) error {
+func (w Wiz) TurnOff(light *Light) (*Light, error) {
 	turnOff := NewRequestBuilder().
 		WithMethod("setState").
 		WithState(false).
 		Build()
 	mTurnOff, err := json.Marshal(turnOff)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = w.query(destAddr, mTurnOff)
+	_, err = w.query(light.IpAddress, mTurnOff)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return w.Status(light)
 }
 
-func (w Wiz) IsTurnedOn(destAddr string) (*bool, error) {
-	params := make(map[string]any)
-	params["state"] = false
-
-	isTurnedOn := NewRequestBuilder().
+func (w Wiz) Status(light *Light) (*Light, error) {
+	getPilot := NewRequestBuilder().
 		WithMethod("getPilot").
 		Build()
-	mIsTurnedOn, err := json.Marshal(isTurnedOn)
+	mGetPilot, err := json.Marshal(getPilot)
 	if err != nil {
 		return nil, err
 	}
 
-	isTurnedOnResponse, err := w.query(destAddr, mIsTurnedOn)
+	queryResponse, err := w.query(light.IpAddress, mGetPilot)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(isTurnedOnResponse) > 0 {
-		response := Response{}
-		err = json.Unmarshal(isTurnedOnResponse[0].Response, &response)
+	if len(queryResponse) > 0 {
+		getPilotResult := Response{}
+		err = json.Unmarshal(queryResponse[0].Response, &getPilotResult)
 		if err != nil {
 			return nil, err
 		}
 
-		isOn := response.Result.State
-		return &isOn, nil
-	} else {
-		return nil, fmt.Errorf("no response from device")
+		return &Light{
+			Id:         light.Id,
+			MacAddress: light.MacAddress,
+			IpAddress:  light.IpAddress,
+			IsOn:       &getPilotResult.Result.State,
+		}, nil
 	}
+
+	return nil, fmt.Errorf("device on address %s did not respond", light.IpAddress)
 }
