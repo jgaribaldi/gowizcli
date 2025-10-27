@@ -25,13 +25,14 @@ var viewCommandMap = map[client.CommandType]ViewType{
 }
 
 type model struct {
-	currentView   ViewType
-	viewHistory   []ViewType
-	menuModel     MenuModel
-	discoverModel discover.Model
-	showModel     showlights.Model
-	eraseAllModel eraseall.Model
-	client        *client.Client
+	currentView      ViewType
+	viewHistory      []ViewType
+	menuModel        MenuModel
+	discoverModel    discover.Model
+	showModel        showlights.Model
+	eraseAllModel    eraseall.Model
+	client           *client.Client
+	defaultBcastAddr string
 }
 
 func (m model) Init() tea.Cmd {
@@ -65,7 +66,7 @@ func (m model) initCurrentView() (tea.Model, tea.Cmd) {
 	case ViewMenu:
 		return m, m.menuModel.Init()
 	case ViewDiscover:
-		m.discoverModel = discover.NewModel(m.client)
+		m.discoverModel = discover.NewModel(m.client, m.defaultBcastAddr)
 		return m, m.discoverModel.Init()
 	case ViewShow:
 		m.showModel = showlights.NewModel(m.client)
@@ -131,15 +132,16 @@ func (m model) View() string {
 	return ""
 }
 
-func InitialModel(client *client.Client) model {
+func InitialModel(client *client.Client, defaultBcastAddr string) model {
 	return model{
-		currentView:   ViewMenu,
-		viewHistory:   []ViewType{},
-		menuModel:     NewMenuModel(),
-		discoverModel: discover.NewModel(client),
-		showModel:     showlights.NewModel(client),
-		eraseAllModel: eraseall.NewModel(client),
-		client:        client,
+		currentView:      ViewMenu,
+		viewHistory:      []ViewType{},
+		menuModel:        NewMenuModel(),
+		discoverModel:    discover.NewModel(client, defaultBcastAddr),
+		showModel:        showlights.NewModel(client),
+		eraseAllModel:    eraseall.NewModel(client),
+		client:           client,
+		defaultBcastAddr: defaultBcastAddr,
 	}
 }
 

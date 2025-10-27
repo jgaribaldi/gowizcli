@@ -19,10 +19,10 @@ type Model struct {
 	cmdStatus common.CmdStatus
 }
 
-func NewModel(client *client.Client) Model {
+func NewModel(client *client.Client, defaultBcastAddr string) Model {
 	return Model{
 		client:    client,
-		input:     newIpAddressInput(),
+		input:     newIpAddressInput(defaultBcastAddr),
 		data:      newDiscoverData(),
 		cmdStatus: *common.NewCmdStatus(),
 	}
@@ -87,13 +87,14 @@ type ipAddressInput struct {
 	focused int
 }
 
-func newIpAddressInput() ipAddressInput {
-	var inputs []textinput.Model = make([]textinput.Model, 4)
+func newIpAddressInput(defaultBcastAddr string) ipAddressInput {
+	octets := strings.Split(defaultBcastAddr, ".")
 
-	inputs[0] = newOctetInput("192")
-	inputs[1] = newOctetInput("168")
-	inputs[2] = newOctetInput("1")
-	inputs[3] = newOctetInput("255")
+	var inputs []textinput.Model = make([]textinput.Model, 4)
+	inputs[0] = newOctetInput(octets[0], "192")
+	inputs[1] = newOctetInput(octets[1], "168")
+	inputs[2] = newOctetInput(octets[2], "1")
+	inputs[3] = newOctetInput(octets[3], "255")
 	inputs[0].Focus()
 
 	return ipAddressInput{
@@ -144,8 +145,9 @@ func (i ipAddressInput) update(msg tea.Msg) (ipAddressInput, []tea.Cmd) {
 	return i, cmds
 }
 
-func newOctetInput(ph string) textinput.Model {
+func newOctetInput(defaultValue string, ph string) textinput.Model {
 	input := textinput.New()
+	input.SetValue(defaultValue)
 	input.Placeholder = ph
 	input.CharLimit = 3
 	input.Width = 3

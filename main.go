@@ -47,7 +47,7 @@ func main() {
 		panic(err)
 	}
 
-	p := tea.NewProgram(ui.InitialModel(c), tea.WithAltScreen())
+	p := tea.NewProgram(ui.InitialModel(c, config.Network.BroadcastAddress), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}
