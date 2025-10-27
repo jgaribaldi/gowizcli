@@ -1,12 +1,11 @@
 package ui
 
 import (
-	"fmt"
 	"gowizcli/client"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type MenuModel struct {
@@ -36,27 +35,26 @@ func (m MenuModel) Init() tea.Cmd {
 func (m MenuModel) Update(msg tea.Msg) (MenuModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "esc":
+		switch {
+		case key.Matches(msg, keyMap.Quit):
 			return m, tea.Quit
-		case "enter":
+		case key.Matches(msg, keyMap.Select):
 			m.selected = m.cursor
-			fmt.Println("blah")
 			selectedOption := m.options[m.selected]
-			fmt.Printf("Selected option is %v\n", selectedOption)
+
 			return m, func() tea.Msg {
 				view := viewCommandMap[selectedOption.Type]
 				return navigateToMsg{view: view}
 			}
-		case "down", "j":
-			m.cursor++
-			if m.cursor >= len(m.options) {
-				m.cursor = 0
-			}
-		case "up", "k":
+		case key.Matches(msg, keyMap.MoveUp):
 			m.cursor--
 			if m.cursor < 0 {
 				m.cursor = len(m.options) - 1
+			}
+		case key.Matches(msg, keyMap.MoveDown):
+			m.cursor++
+			if m.cursor >= len(m.options) {
+				m.cursor = 0
 			}
 		}
 	}
@@ -80,6 +78,14 @@ func (m MenuModel) View() string {
 	return s.String()
 }
 
-var baseStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("240"))
+var keyMap = struct {
+	Quit     key.Binding
+	Select   key.Binding
+	MoveUp   key.Binding
+	MoveDown key.Binding
+}{
+	Quit:     key.NewBinding(key.WithKeys("ctrl+c", "q", "esc"), key.WithHelp("ctrl+c / q / esc", "quit program")),
+	Select:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+	MoveUp:   key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("up arrow / k", "move up")),
+	MoveDown: key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("down arrow / j", "move down")),
+}
