@@ -30,7 +30,7 @@ func TestWizDiscover(t *testing.T) {
 			got, _ := wiz.Discover("192.168.1.255")
 
 			if got[0].IpAddress != tt.want[0].IpAddress || got[0].MacAddress != tt.want[0].MacAddress {
-				t.Errorf("Got %s but want %s\n", got, tt.want)
+				t.Errorf("Got %s but want %s\n", got[0].IpAddress, tt.want[0].IpAddress)
 			}
 		})
 	}

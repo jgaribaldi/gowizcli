@@ -51,9 +51,4 @@ func main() {
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}
-
-	// if m, ok := m.(MenuModel); ok && m.options[m.selected].Name != "" {
-	// 	cmd := client.Command{CommandType: m.options[m.selected].Type}
-	// 	c.Execute(cmd)
-	// }
 }
