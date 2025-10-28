@@ -18,12 +18,6 @@ const (
 	ViewEraseAll
 )
 
-var viewCommandMap = map[client.CommandType]ViewType{
-	client.Discover: ViewDiscover,
-	client.Show:     ViewShow,
-	client.Reset:    ViewEraseAll,
-}
-
 type model struct {
 	currentView      ViewType
 	viewHistory      []ViewType

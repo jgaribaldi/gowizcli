@@ -47,6 +47,21 @@ func (c Client) Execute(command Command) ([]wiz.Light, error) {
 	}
 }
 
+type CommandType int
+
+const (
+	Discover CommandType = iota
+	Show
+	Reset
+	TurnOn
+	TurnOff
+)
+
+type Command struct {
+	CommandType CommandType
+	Parameters  []string
+}
+
 func (c Client) executeDiscover(bcastAddr string) ([]wiz.Light, error) {
 	lights, err := c.wizClient.Discover(bcastAddr)
 	if err != nil {
