@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -35,12 +36,12 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyTab:
+		switch {
+		case key.Matches(msg, keyMap.NextOctet):
 			m.input = m.input.nextOctet()
-		case tea.KeyShiftTab:
+		case key.Matches(msg, keyMap.PrevOctet):
 			m.input = m.input.previousOctet()
-		case tea.KeyEnter:
+		case key.Matches(msg, keyMap.Execute):
 			if m.cmdStatus.State == common.Ready {
 				broadcastAddress := m.input.getValue()
 				m.cmdStatus = m.cmdStatus.Start()
@@ -218,4 +219,14 @@ type discoverOkMsg struct {
 
 type discoverErrorMsg struct {
 	err error
+}
+
+var keyMap = struct {
+	NextOctet key.Binding
+	PrevOctet key.Binding
+	Execute   key.Binding
+}{
+	NextOctet: key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next octet")),
+	PrevOctet: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("tab", "previous octet")),
+	Execute:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "execute discover")),
 }
