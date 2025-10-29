@@ -5,6 +5,7 @@ import (
 	"gowizcli/ui/common"
 	"gowizcli/wiz"
 
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,6 +17,7 @@ type Model struct {
 	cmdStatus common.CmdStatus
 	data      fetchDoneMsg
 	table     table.Model
+	help      help.Model
 }
 
 func NewModel(client *client.Client) Model {
@@ -51,6 +53,7 @@ func NewModel(client *client.Client) Model {
 		cmdStatus: resetStatus(),
 		data:      resetData(),
 		table:     t,
+		help:      help.New(),
 	}
 }
 
@@ -101,11 +104,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, keyMap.Refresh):
+		case key.Matches(msg, keys.Refresh):
 			m.cmdStatus = resetStatus()
 			m.data = resetData()
 			return m, m.fetchCmd()
-		case key.Matches(msg, keyMap.Switch):
+		case key.Matches(msg, keys.Switch):
 			return m, m.switchLightCmd()
 		}
 	}
@@ -162,7 +165,8 @@ func (m Model) View() string {
 		return "Error fetching lights"
 	}
 
-	return baseStyle.Render(m.table.View()) + "\n"
+	helpView := m.help.View(keys)
+	return baseStyle.Render(m.table.View()) + "\n\n" + helpView
 }
 
 func (m Model) fetchCmd() tea.Cmd {
@@ -239,10 +243,22 @@ type switchDoneMsg struct {
 	err   error
 }
 
-var keyMap = struct {
+type keyMap struct {
 	Refresh key.Binding
 	Switch  key.Binding
-}{
-	Refresh: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
-	Switch:  key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "switch light")),
+}
+
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Refresh, k.Switch}
+}
+
+func (k keyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Refresh, k.Switch},
+	}
+}
+
+var keys = keyMap{
+	Refresh: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "Refresh")),
+	Switch:  key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "Switch light")),
 }
