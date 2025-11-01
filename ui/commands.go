@@ -23,10 +23,10 @@ func (m Model) fetchCmd() tea.Cmd {
 
 func (m Model) switchLightCmd() tea.Cmd {
 	return func() tea.Msg {
-		if len(m.data.lights) > 0 {
+		if len(m.fetchLightsData.lights) > 0 {
 			selectedRow := m.table.Cursor()
-			if selectedRow < len(m.data.lights) {
-				selectedLight := m.data.lights[selectedRow]
+			if selectedRow < len(m.fetchLightsData.lights) {
+				selectedLight := m.fetchLightsData.lights[selectedRow]
 
 				cmd := switchCommand(selectedLight)
 				result, err := m.client.Execute(cmd)
@@ -63,6 +63,22 @@ func switchCommand(light wiz.Light) client.Command {
 			Parameters: []string{
 				light.Id,
 			},
+		}
+	}
+}
+
+func (m Model) discoverCommand() tea.Cmd {
+	return func() tea.Msg {
+		cmd := client.Command{
+			CommandType: client.Discover,
+			Parameters: []string{
+				m.bcastAddr,
+			},
+		}
+		result, err := m.client.Execute(cmd)
+		return discoverDoneMsg{
+			lights: result,
+			err:    err,
 		}
 	}
 }

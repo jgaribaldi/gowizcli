@@ -13,14 +13,19 @@ import (
 )
 
 type Model struct {
-	client    *client.Client
-	cmdStatus common.CmdStatus
-	data      fetchDoneMsg
-	table     table.Model
-	help      help.Model
+	client            *client.Client
+	bcastAddr         string
+	fetchLigthsStatus common.CmdStatus
+	fetchLightsData   fetchDoneMsg
+	discoverData      discoverDoneMsg
+	discoverStatus    common.CmdStatus
+	table             table.Model
+	help              help.Model
+	width             int
+	height            int
 }
 
-func NewModel(client *client.Client) Model {
+func NewModel(client *client.Client, bcastAddr string) Model {
 	columns := []table.Column{
 		{Title: "ID", Width: 40},
 		{Title: "MAC Address", Width: 20},
@@ -49,11 +54,14 @@ func NewModel(client *client.Client) Model {
 	t.SetStyles(s)
 
 	return Model{
-		client:    client,
-		cmdStatus: resetStatus(),
-		data:      resetData(),
-		table:     t,
-		help:      help.New(),
+		client:            client,
+		bcastAddr:         bcastAddr,
+		fetchLigthsStatus: resetStatus(),
+		fetchLightsData:   resetData(),
+		discoverStatus:    *common.NewCmdStatus(),
+		discoverData:      resetDiscoverData(),
+		table:             t,
+		help:              help.New(),
 	}
 }
 
@@ -66,8 +74,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case fetchDoneMsg:
-		m.data = msg
-		m.cmdStatus = m.cmdStatus.Finish()
+		m.fetchLightsData = msg
+		m.fetchLigthsStatus = m.fetchLigthsStatus.Finish()
 		m.table.Focus()
 
 		if msg.err != nil {
@@ -84,13 +92,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			return m, nil
 		} else {
-			var rows []table.Row = make([]table.Row, len(m.data.lights))
-			var lights []wiz.Light = make([]wiz.Light, len(m.data.lights))
+			var rows []table.Row = make([]table.Row, len(m.fetchLightsData.lights))
+			var lights []wiz.Light = make([]wiz.Light, len(m.fetchLightsData.lights))
 
 			copy(rows, m.table.Rows())
-			copy(lights, m.data.lights)
+			copy(lights, m.fetchLightsData.lights)
 
-			for idx, l := range m.data.lights {
+			for idx, l := range m.fetchLightsData.lights {
 				if l.Id == msg.light.Id {
 					rows[idx] = lightToRow(msg.light)
 					lights[idx] = msg.light
@@ -99,20 +107,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			m.table.SetRows(rows)
-			m.data.lights = lights
+			m.fetchLightsData.lights = lights
 			return m, nil
 		}
+	case discoverDoneMsg:
+		if msg.err != nil || len(msg.lights) == 0 {
+			return m, nil
+		}
+		m.discoverData = msg
+		m.table.SetRows(rowsFromLights(m.discoverData.lights))
+		return m, nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, keys.Refresh):
-			m.cmdStatus = resetStatus()
-			m.data = resetData()
+			m.fetchLigthsStatus = resetStatus()
+			m.fetchLightsData = resetData()
 			return m, m.fetchCmd()
 		case key.Matches(msg, keys.Switch):
 			return m, m.switchLightCmd()
+		case key.Matches(msg, keys.Discover):
+			return m, m.discoverCommand()
 		case key.Matches(msg, keys.Quit):
 			return m, tea.Quit
 		}
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	}
 
 	m.table, cmd = m.table.Update(msg)
@@ -124,11 +144,12 @@ func resetStatus() common.CmdStatus {
 	return status.Start()
 }
 
-func resetData() fetchDoneMsg {
-	return fetchDoneMsg{
-		lights: []wiz.Light{},
-		err:    nil,
+func rowsFromLights(lights []wiz.Light) []table.Row {
+	var rows []table.Row = make([]table.Row, 0)
+	for _, l := range lights {
+		rows = append(rows, lightToRow(l))
 	}
+	return rows
 }
 
 func lightToRow(l wiz.Light) table.Row {
@@ -159,91 +180,32 @@ func lightToRow(l wiz.Light) table.Row {
 }
 
 func (m Model) View() string {
-	if m.cmdStatus.State == common.Running {
-		return "Fetching lights..."
+	if m.fetchLigthsStatus.State == common.Running {
+		message := box.Render("Fetching lights...")
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, message)
 	}
 
-	if m.data.err != nil {
+	if m.fetchLightsData.err != nil {
 		return "Error fetching lights"
+	}
+
+	if m.discoverStatus.State == common.Running {
+		message := box.Render("Discovering lights...")
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, message)
+	}
+
+	if m.discoverData.err != nil {
+		// TODO: replace with modal
+		return "Error discovering lights"
 	}
 
 	helpView := m.help.View(keys)
 	return welcomeMsg + "\n\n" + baseStyle.Render(m.table.View()) + "\n\n" + helpView
 }
 
-func (m Model) fetchCmd() tea.Cmd {
-	return func() tea.Msg {
-		cmd := client.Command{
-			CommandType: client.Show,
-			Parameters:  []string{},
-		}
-		result, err := m.client.Execute(cmd)
-		return fetchDoneMsg{
-			lights: result,
-			err:    err,
-		}
-	}
-}
-
-func (m Model) switchLightCmd() tea.Cmd {
-	return func() tea.Msg {
-		if len(m.data.lights) > 0 {
-			selectedRow := m.table.Cursor()
-			if selectedRow < len(m.data.lights) {
-				selectedLight := m.data.lights[selectedRow]
-
-				cmd := switchCommand(selectedLight)
-				result, err := m.client.Execute(cmd)
-
-				if len(result) > 0 {
-					return switchDoneMsg{
-						light: result[0],
-						err:   err,
-					}
-				} else {
-					return switchDoneMsg{
-						err: err,
-					}
-				}
-			}
-			return nil
-		}
-		return nil
-	}
-}
-
-func switchCommand(light wiz.Light) client.Command {
-	if light.IsOn != nil && *light.IsOn {
-		return client.Command{
-			CommandType: client.TurnOff,
-			Parameters: []string{
-				light.Id,
-			},
-		}
-
-	} else {
-		return client.Command{
-			CommandType: client.TurnOn,
-			Parameters: []string{
-				light.Id,
-			},
-		}
-	}
-}
-
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
-
-type fetchDoneMsg struct {
-	lights []wiz.Light
-	err    error
-}
-
-type switchDoneMsg struct {
-	light wiz.Light
-	err   error
-}
 
 type keyMap struct {
 	Refresh  key.Binding
@@ -272,3 +234,7 @@ var keys = keyMap{
 }
 
 var welcomeMsg string = "Welcome to Gowizcli! A Wiz client written in Go"
+
+var box = lipgloss.NewStyle().
+	Padding(1, 2).
+	Border(lipgloss.RoundedBorder())

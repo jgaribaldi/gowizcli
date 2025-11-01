@@ -18,3 +18,15 @@ type switchDoneMsg struct {
 	light wiz.Light
 	err   error
 }
+
+type discoverDoneMsg struct {
+	lights []wiz.Light
+	err    error
+}
+
+func resetDiscoverData() discoverDoneMsg {
+	return discoverDoneMsg{
+		lights: []wiz.Light{},
+		err:    nil,
+	}
+}
