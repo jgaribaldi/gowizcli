@@ -21,8 +21,7 @@ type Model struct {
 	discoverStatus    common.CmdStatus
 	table             table.Model
 	help              help.Model
-	width             int
-	height            int
+	dimensions        dimensions
 }
 
 func NewModel(client *client.Client, bcastAddr string) Model {
@@ -37,21 +36,20 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 		table.WithColumns(columns),
 		table.WithRows([]table.Row{}),
 		table.WithFocused(true),
-		table.WithHeight(20),
 	)
 
-	s := table.DefaultStyles()
-	s.Header = s.Header.
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		BorderBottom(true).
-		Bold(false)
-	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(true)
+	// s := table.DefaultStyles()
+	// s.Header = s.Header.
+	// 	BorderStyle(lipgloss.NormalBorder()).
+	// 	BorderForeground(lipgloss.Color("240")).
+	// 	BorderBottom(true).
+	// 	Bold(false)
+	// s.Selected = s.Selected.
+	// 	Foreground(lipgloss.Color("229")).
+	// 	Background(lipgloss.Color("57")).
+	// 	Bold(true)
 
-	t.SetStyles(s)
+	t.SetStyles(tableStyles())
 
 	return Model{
 		client:            client,
@@ -131,13 +129,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+		m.resize(msg)
+		// m.resizeTable()
 	}
 
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
 }
+
+// func (m Model) resizeTable() {
+// 	titleRendered := titleStyle.
+// 		Width(m.dimensions.availableWidth).
+// 		Render(welcomeMsg)
+// 	titleHeight := lipgloss.Height(titleRendered)
+//
+// 	helpView := m.help.View(keys)
+// 	helplineRendered := helplineStyle.
+// 		Width(m.dimensions.availableWidth).
+// 		Render(helpView)
+// 	helplineHeight := lipgloss.Height(helplineRendered)
+//
+// 	m.table.SetHeight(0)
+// 	tableRendered := tableStyle.
+// 		Width(m.dimensions.availableWidth).
+// 		Render(m.table.View())
+// 	tableOverhead := lipgloss.Height(tableRendered)
+//
+// 	finalTableHeight := m.dimensions.availableHeight - titleHeight - helplineHeight - tableOverhead
+// 	finalTableHeight = max(1, finalTableHeight)
+//
+// 	m.table.SetHeight(finalTableHeight)
+// 	m.table.SetWidth(m.dimensions.availableWidth)
+// }
 
 func resetStatus() common.CmdStatus {
 	status := common.NewCmdStatus()
@@ -181,8 +204,8 @@ func lightToRow(l wiz.Light) table.Row {
 
 func (m Model) View() string {
 	if m.fetchLigthsStatus.State == common.Running {
-		message := box.Render("Fetching lights...")
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, message)
+		message := boxStyle.Render("Fetching lights...")
+		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
 	}
 
 	if m.fetchLightsData.err != nil {
@@ -190,8 +213,8 @@ func (m Model) View() string {
 	}
 
 	if m.discoverStatus.State == common.Running {
-		message := box.Render("Discovering lights...")
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, message)
+		message := boxStyle.Render("Discovering lights...")
+		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
 	}
 
 	if m.discoverData.err != nil {
@@ -199,13 +222,22 @@ func (m Model) View() string {
 		return "Error discovering lights"
 	}
 
-	helpView := m.help.View(keys)
-	return welcomeMsg + "\n\n" + baseStyle.Render(m.table.View()) + "\n\n" + helpView
-}
+	title := titleStyle.
+		Width(m.dimensions.title.width).
+		Render(welcomeMsg)
 
-var baseStyle = lipgloss.NewStyle().
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("240"))
+	helpView := m.help.View(keys)
+	helpline := helplineStyle.
+		Width(m.dimensions.helpline.width).
+		Render(helpView)
+
+	tableBody := tableStyle.
+		Width(m.dimensions.table.width).
+		Height(m.dimensions.table.height).
+		Render(m.table.View())
+	body := lipgloss.JoinVertical(lipgloss.Left, title, tableBody, helpline)
+	return docStyle.Render(body)
+}
 
 type keyMap struct {
 	Refresh  key.Binding
@@ -233,8 +265,110 @@ var keys = keyMap{
 	Quit:     key.NewBinding(key.WithKeys("ctrl+q"), key.WithHelp("ctrl+q", "Quit program")),
 }
 
-var welcomeMsg string = "Welcome to Gowizcli! A Wiz client written in Go"
+type dimensions struct {
+	// totalHeight     int
+	// totalWidth      int
+	// availableHeight int
+	// availableWidth  int
+	// titleHeight     int
+	// tableHeight     int
+	// helplineHeight  int
+	window   size
+	title    size
+	table    size
+	helpline size
+}
 
-var box = lipgloss.NewStyle().
-	Padding(1, 2).
-	Border(lipgloss.RoundedBorder())
+func (m Model) resize(msg tea.WindowSizeMsg) {
+	// availableH, availableW := availableDimensions(msg.Height, msg.Width)
+	windowSize := windowSize(msg)
+	titleSize := titleSize(windowSize)
+	helplineSize := helplineSize(windowSize, m)
+	tableSize := tableSize(windowSize, titleSize, helplineSize, m)
+
+	m.dimensions = dimensions{
+		window:   windowSize,
+		title:    titleSize,
+		helpline: helplineSize,
+		table:    tableSize,
+		// totalHeight:     msg.Height,
+		// totalWidth:      msg.Width,
+		// availableHeight: availableH,
+		// availableWidth:  availableW,
+	}
+}
+
+// func availableDimensions(totalHeight, totalWidth int) (int, int) {
+// 	wFrame, hFrame := docStyle.GetFrameSize()
+//
+// 	availableHeight := totalHeight - hFrame
+// 	availableWidth := totalWidth - wFrame
+//
+// 	if availableHeight < 1 {
+// 		availableHeight = 1
+// 	}
+//
+// 	if availableWidth < 10 {
+// 		availableWidth = 10
+// 	}
+//
+// 	return availableHeight, availableWidth
+// }
+
+func windowSize(msg tea.WindowSizeMsg) size {
+	marginWidth, marginHeight := docStyle.GetFrameSize()
+	height := max(1, msg.Height-marginHeight)
+	width := max(10, msg.Width-marginWidth)
+
+	return size{
+		width:  width,
+		height: height,
+	}
+}
+
+func titleSize(windowSize size) size {
+	titleRendered := titleStyle.
+		Width(windowSize.width).
+		Render(welcomeMsg)
+	titleHeight := lipgloss.Height(titleRendered)
+
+	return size{
+		width:  windowSize.width,
+		height: titleHeight,
+	}
+}
+
+func helplineSize(windowSize size, m Model) size {
+	helpView := m.help.View(keys)
+	helplineRendered := helplineStyle.
+		Width(windowSize.width).
+		Render(helpView)
+	helplineHeight := lipgloss.Height(helplineRendered)
+
+	return size{
+		width:  windowSize.width,
+		height: helplineHeight,
+	}
+}
+func tableSize(windowSize, titleSize, helplineSize size, m Model) size {
+	m.table.SetHeight(0)
+	tableRendered := tableStyle.
+		Width(windowSize.width).
+		Render(m.table.View())
+	tableOverhead := lipgloss.Height(tableRendered)
+
+	finalTableHeight := windowSize.height - titleSize.height - helplineSize.height - tableOverhead
+	finalTableHeight = max(1, finalTableHeight)
+
+	return size{
+		width:  windowSize.width,
+		height: finalTableHeight,
+	}
+}
+
+type size struct {
+	width  int
+	height int
+}
+
+var welcomeMsg string = "Welcome to Gowizcli! A Wiz client written in Go"

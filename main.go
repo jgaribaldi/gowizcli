@@ -15,7 +15,6 @@ func main() {
 	var config Config
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
-
 	db, err := db.NewConnection(config.Database.File)
 	if err != nil {
 		panic(err)
