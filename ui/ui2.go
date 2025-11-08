@@ -38,17 +38,6 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 		table.WithFocused(true),
 	)
 
-	// s := table.DefaultStyles()
-	// s.Header = s.Header.
-	// 	BorderStyle(lipgloss.NormalBorder()).
-	// 	BorderForeground(lipgloss.Color("240")).
-	// 	BorderBottom(true).
-	// 	Bold(false)
-	// s.Selected = s.Selected.
-	// 	Foreground(lipgloss.Color("229")).
-	// 	Background(lipgloss.Color("57")).
-	// 	Bold(true)
-
 	t.SetStyles(tableStyles())
 
 	return Model{
@@ -129,38 +118,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		m.resize(msg)
-		// m.resizeTable()
+		return m.resize(msg), nil
 	}
 
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
 }
-
-// func (m Model) resizeTable() {
-// 	titleRendered := titleStyle.
-// 		Width(m.dimensions.availableWidth).
-// 		Render(welcomeMsg)
-// 	titleHeight := lipgloss.Height(titleRendered)
-//
-// 	helpView := m.help.View(keys)
-// 	helplineRendered := helplineStyle.
-// 		Width(m.dimensions.availableWidth).
-// 		Render(helpView)
-// 	helplineHeight := lipgloss.Height(helplineRendered)
-//
-// 	m.table.SetHeight(0)
-// 	tableRendered := tableStyle.
-// 		Width(m.dimensions.availableWidth).
-// 		Render(m.table.View())
-// 	tableOverhead := lipgloss.Height(tableRendered)
-//
-// 	finalTableHeight := m.dimensions.availableHeight - titleHeight - helplineHeight - tableOverhead
-// 	finalTableHeight = max(1, finalTableHeight)
-//
-// 	m.table.SetHeight(finalTableHeight)
-// 	m.table.SetWidth(m.dimensions.availableWidth)
-// }
 
 func resetStatus() common.CmdStatus {
 	status := common.NewCmdStatus()
@@ -231,6 +194,12 @@ func (m Model) View() string {
 		Width(m.dimensions.helpline.width).
 		Render(helpView)
 
+	cols := m.table.Columns()
+	for i := range m.dimensions.columns {
+		cols[i].Width = m.dimensions.columns[i].width
+	}
+	m.table.SetColumns(cols)
+
 	tableBody := tableStyle.
 		Width(m.dimensions.table.width).
 		Height(m.dimensions.table.height).
@@ -266,54 +235,29 @@ var keys = keyMap{
 }
 
 type dimensions struct {
-	// totalHeight     int
-	// totalWidth      int
-	// availableHeight int
-	// availableWidth  int
-	// titleHeight     int
-	// tableHeight     int
-	// helplineHeight  int
 	window   size
 	title    size
 	table    size
 	helpline size
+	columns  []size
 }
 
-func (m Model) resize(msg tea.WindowSizeMsg) {
-	// availableH, availableW := availableDimensions(msg.Height, msg.Width)
+func (m Model) resize(msg tea.WindowSizeMsg) Model {
 	windowSize := windowSize(msg)
 	titleSize := titleSize(windowSize)
 	helplineSize := helplineSize(windowSize, m)
 	tableSize := tableSize(windowSize, titleSize, helplineSize, m)
+	columnsSizes := columnsSize(tableSize, m)
 
 	m.dimensions = dimensions{
 		window:   windowSize,
 		title:    titleSize,
 		helpline: helplineSize,
 		table:    tableSize,
-		// totalHeight:     msg.Height,
-		// totalWidth:      msg.Width,
-		// availableHeight: availableH,
-		// availableWidth:  availableW,
+		columns:  columnsSizes,
 	}
+	return m
 }
-
-// func availableDimensions(totalHeight, totalWidth int) (int, int) {
-// 	wFrame, hFrame := docStyle.GetFrameSize()
-//
-// 	availableHeight := totalHeight - hFrame
-// 	availableWidth := totalWidth - wFrame
-//
-// 	if availableHeight < 1 {
-// 		availableHeight = 1
-// 	}
-//
-// 	if availableWidth < 10 {
-// 		availableWidth = 10
-// 	}
-//
-// 	return availableHeight, availableWidth
-// }
 
 func windowSize(msg tea.WindowSizeMsg) size {
 	marginWidth, marginHeight := docStyle.GetFrameSize()
@@ -350,6 +294,7 @@ func helplineSize(windowSize size, m Model) size {
 		height: helplineHeight,
 	}
 }
+
 func tableSize(windowSize, titleSize, helplineSize size, m Model) size {
 	m.table.SetHeight(0)
 	tableRendered := tableStyle.
@@ -364,6 +309,35 @@ func tableSize(windowSize, titleSize, helplineSize size, m Model) size {
 		width:  windowSize.width,
 		height: finalTableHeight,
 	}
+}
+
+func columnsSize(tableSize size, m Model) []size {
+	columns := m.table.Columns()
+	colNum := len(columns)
+	if colNum == 0 {
+		return nil
+	}
+
+	hPadding, _ := tableStyles().Cell.GetFrameSize()
+	usableWidth := tableSize.width - (hPadding * colNum)
+	usableWidth = max(usableWidth, colNum)
+
+	base := usableWidth / colNum
+	remainder := usableWidth % colNum
+
+	var sizes []size = make([]size, colNum)
+	for i := range columns {
+		w := base
+		// spread remainder to columns so total matches
+		if i < remainder {
+			w++
+		}
+		sizes[i] = size{
+			width: w,
+		}
+	}
+
+	return sizes
 }
 
 type size struct {
