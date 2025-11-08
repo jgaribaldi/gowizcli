@@ -4,6 +4,7 @@ import (
 	"gowizcli/client"
 	"gowizcli/ui/common"
 	"gowizcli/wiz"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -26,9 +27,8 @@ type Model struct {
 
 func NewModel(client *client.Client, bcastAddr string) Model {
 	columns := []table.Column{
-		{Title: "ID", Width: 40},
-		{Title: "MAC Address", Width: 20},
 		{Title: "IP Address", Width: 20},
+		{Title: "MAC Address", Width: 20},
 		{Title: "Status", Width: 10},
 	}
 
@@ -142,24 +142,21 @@ func lightToRow(l wiz.Light) table.Row {
 	if l.IsOn != nil {
 		if *l.IsOn {
 			return table.Row{
-				l.Id,
-				l.MacAddress,
 				l.IpAddress,
+				parseMacAddress(l.MacAddress),
 				"On",
 			}
 		} else {
 			return table.Row{
-				l.Id,
-				l.MacAddress,
 				l.IpAddress,
+				parseMacAddress(l.MacAddress),
 				"Off",
 			}
 		}
 	} else {
 		return table.Row{
-			l.Id,
-			l.MacAddress,
 			l.IpAddress,
+			parseMacAddress(l.MacAddress),
 			"Unknown",
 		}
 	}
@@ -172,6 +169,7 @@ func (m Model) View() string {
 	}
 
 	if m.fetchLightsData.err != nil {
+		// TODO: replace with modal
 		return "Error fetching lights"
 	}
 
@@ -343,6 +341,22 @@ func columnsSize(tableSize size, m Model) []size {
 type size struct {
 	width  int
 	height int
+}
+
+func parseMacAddress(src string) string {
+	positions := []int{1, 3, 5, 7, 9}
+
+	var b strings.Builder
+	next := 0
+	for i, r := range src {
+		b.WriteRune(r)
+
+		if next < len(positions) && i == positions[next] {
+			b.WriteByte(':')
+			next++
+		}
+	}
+	return b.String()
 }
 
 var welcomeMsg string = "Welcome to Gowizcli! A Wiz client written in Go"
