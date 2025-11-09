@@ -20,6 +20,7 @@ type Model struct {
 	fetchLightsData   fetchDoneMsg
 	discoverData      discoverDoneMsg
 	discoverStatus    common.CmdStatus
+	eraseAllStatus    common.CmdStatus
 	table             table.Model
 	help              help.Model
 	dimensions        dimensions
@@ -47,6 +48,7 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 		fetchLightsData:   resetData(),
 		discoverStatus:    *common.NewCmdStatus(),
 		discoverData:      resetDiscoverData(),
+		eraseAllStatus:    *common.NewCmdStatus(),
 		table:             t,
 		help:              help.New(),
 	}
@@ -104,6 +106,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.discoverData = msg
 		m.table.SetRows(rowsFromLights(m.discoverData.lights))
 		return m, nil
+	case eraseAllLightsDoneMsg:
+		m.eraseAllStatus = m.eraseAllStatus.Finish()
+		if msg.err != nil {
+			return m, nil
+		}
+		m.discoverData = resetDiscoverData()
+		m.fetchLightsData = resetData()
+		m.table.SetRows(rowsFromLights(m.discoverData.lights))
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, keys.Refresh):
@@ -114,6 +124,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.switchLightCmd()
 		case key.Matches(msg, keys.Discover):
 			return m, m.discoverCommand()
+		case key.Matches(msg, keys.EraseAll):
+			if m.eraseAllStatus.State != common.Running {
+				m.eraseAllStatus = m.eraseAllStatus.Start()
+				return m, m.eraseAllCommand()
+			} else {
+				return m, nil
+			}
 		case key.Matches(msg, keys.Quit):
 			return m, tea.Quit
 		}
@@ -175,6 +192,11 @@ func (m Model) View() string {
 
 	if m.discoverStatus.State == common.Running {
 		message := boxStyle.Render("Discovering lights...")
+		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
+	}
+
+	if m.eraseAllStatus.State == common.Running {
+		message := boxStyle.Render("Erasing lights...")
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
 	}
 

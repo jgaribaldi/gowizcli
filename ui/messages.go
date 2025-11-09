@@ -24,6 +24,10 @@ type discoverDoneMsg struct {
 	err    error
 }
 
+type eraseAllLightsDoneMsg struct {
+	err error
+}
+
 func resetDiscoverData() discoverDoneMsg {
 	return discoverDoneMsg{
 		lights: []wiz.Light{},

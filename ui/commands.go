@@ -82,3 +82,17 @@ func (m Model) discoverCommand() tea.Cmd {
 		}
 	}
 }
+
+func (m Model) eraseAllCommand() tea.Cmd {
+	return func() tea.Msg {
+		cmd := client.Command{
+			CommandType: client.Reset,
+			Parameters:  []string{},
+		}
+
+		_, err := m.client.Execute(cmd)
+		return eraseAllLightsDoneMsg{
+			err: err,
+		}
+	}
+}
