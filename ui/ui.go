@@ -17,13 +17,13 @@ type Model struct {
 	client            *client.Client
 	bcastAddr         string
 	fetchLigthsStatus common.CmdStatus
-	fetchLightsData   fetchDoneMsg
-	discoverData      discoverDoneMsg
 	discoverStatus    common.CmdStatus
 	eraseAllStatus    common.CmdStatus
+	switchLightStatus common.CmdStatus
 	table             table.Model
 	help              help.Model
 	dimensions        dimensions
+	lights            []wiz.Light
 }
 
 func NewModel(client *client.Client, bcastAddr string) Model {
@@ -40,17 +40,21 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 	)
 
 	t.SetStyles(tableStyles())
+	var lights = make([]wiz.Light, 0)
+
+	initialStatus := *common.NewCmdStatus()
+	initialStatus = initialStatus.Start()
 
 	return Model{
 		client:            client,
 		bcastAddr:         bcastAddr,
-		fetchLigthsStatus: resetStatus(),
-		fetchLightsData:   resetData(),
+		fetchLigthsStatus: initialStatus,
 		discoverStatus:    *common.NewCmdStatus(),
-		discoverData:      resetDiscoverData(),
 		eraseAllStatus:    *common.NewCmdStatus(),
+		switchLightStatus: *common.NewCmdStatus(),
 		table:             t,
 		help:              help.New(),
+		lights:            lights,
 	}
 }
 
@@ -58,79 +62,87 @@ func (m Model) Init() tea.Cmd {
 	return m.fetchCmd()
 }
 
+func (m Model) update(lights []wiz.Light) Model {
+	var newRows = make([]table.Row, len(lights))
+	for idx, l := range lights {
+		newRows[idx] = lightToRow(l)
+	}
+
+	m.table.SetRows(newRows)
+	m.lights = lights
+	m.table.Focus()
+
+	return m
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case fetchDoneMsg:
-		m.fetchLightsData = msg
 		m.fetchLigthsStatus = m.fetchLigthsStatus.Finish()
-		m.table.Focus()
 
 		if msg.err != nil {
 			return m, nil
 		} else {
-			var rows []table.Row = make([]table.Row, len(msg.lights))
-			for idx, l := range msg.lights {
-				rows[idx] = lightToRow(l)
-			}
-			m.table.SetRows(rows)
-			return m, nil
+			return m.update(msg.lights), nil
 		}
 	case switchDoneMsg:
+		m.switchLightStatus = m.switchLightStatus.Finish()
+
 		if msg.err != nil {
 			return m, nil
 		} else {
-			var rows []table.Row = make([]table.Row, len(m.fetchLightsData.lights))
-			var lights []wiz.Light = make([]wiz.Light, len(m.fetchLightsData.lights))
+			var lights []wiz.Light = make([]wiz.Light, len(m.lights))
+			copy(lights, m.lights)
 
-			copy(rows, m.table.Rows())
-			copy(lights, m.fetchLightsData.lights)
-
-			for idx, l := range m.fetchLightsData.lights {
+			for idx, l := range m.lights {
 				if l.Id == msg.light.Id {
-					rows[idx] = lightToRow(msg.light)
 					lights[idx] = msg.light
 					break
 				}
 			}
 
-			m.table.SetRows(rows)
-			m.fetchLightsData.lights = lights
-			return m, nil
+			return m.update(lights), nil
 		}
 	case discoverDoneMsg:
+		m.discoverStatus = m.discoverStatus.Finish()
 		if msg.err != nil || len(msg.lights) == 0 {
 			return m, nil
 		}
-		m.discoverData = msg
-		m.table.SetRows(rowsFromLights(m.discoverData.lights))
-		return m, nil
+		return m.update(msg.lights), nil
 	case eraseAllLightsDoneMsg:
 		m.eraseAllStatus = m.eraseAllStatus.Finish()
 		if msg.err != nil {
 			return m, nil
 		}
-		m.discoverData = resetDiscoverData()
-		m.fetchLightsData = resetData()
-		m.table.SetRows(rowsFromLights(m.discoverData.lights))
+		return m.update([]wiz.Light{}), nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, keys.Refresh):
-			m.fetchLigthsStatus = resetStatus()
-			m.fetchLightsData = resetData()
-			return m, m.fetchCmd()
+			if m.fetchLigthsStatus.State != common.Running {
+				m.fetchLigthsStatus = m.fetchLigthsStatus.Start()
+				return m, m.fetchCmd()
+			}
+			return m, nil
 		case key.Matches(msg, keys.Switch):
-			return m, m.switchLightCmd()
+			if m.switchLightStatus.State != common.Running {
+				m.switchLightStatus = m.switchLightStatus.Start()
+				return m, m.switchLightCmd()
+			}
+			return m, nil
 		case key.Matches(msg, keys.Discover):
-			return m, m.discoverCommand()
+			if m.discoverStatus.State != common.Running {
+				m.discoverStatus = m.discoverStatus.Start()
+				return m, m.discoverCommand()
+			}
+			return m, nil
 		case key.Matches(msg, keys.EraseAll):
 			if m.eraseAllStatus.State != common.Running {
 				m.eraseAllStatus = m.eraseAllStatus.Start()
 				return m, m.eraseAllCommand()
-			} else {
-				return m, nil
 			}
+			return m, nil
 		case key.Matches(msg, keys.Quit):
 			return m, tea.Quit
 		}
@@ -140,19 +152,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
-}
-
-func resetStatus() common.CmdStatus {
-	status := common.NewCmdStatus()
-	return status.Start()
-}
-
-func rowsFromLights(lights []wiz.Light) []table.Row {
-	var rows []table.Row = make([]table.Row, 0)
-	for _, l := range lights {
-		rows = append(rows, lightToRow(l))
-	}
-	return rows
 }
 
 func lightToRow(l wiz.Light) table.Row {
@@ -185,11 +184,6 @@ func (m Model) View() string {
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
 	}
 
-	if m.fetchLightsData.err != nil {
-		// TODO: replace with modal
-		return "Error fetching lights"
-	}
-
 	if m.discoverStatus.State == common.Running {
 		message := boxStyle.Render("Discovering lights...")
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
@@ -198,11 +192,6 @@ func (m Model) View() string {
 	if m.eraseAllStatus.State == common.Running {
 		message := boxStyle.Render("Erasing lights...")
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
-	}
-
-	if m.discoverData.err != nil {
-		// TODO: replace with modal
-		return "Error discovering lights"
 	}
 
 	title := titleStyle.
