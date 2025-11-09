@@ -128,31 +128,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.update([]wiz.Light{}), nil
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, keys.Refresh):
+		case key.Matches(msg, keys.Refresh.binding):
 			if m.fetchLigthsStatus.State != common.Running {
 				m.fetchLigthsStatus = m.fetchLigthsStatus.Start()
 				return m, m.fetchCmd()
 			}
 			return m, nil
-		case key.Matches(msg, keys.Switch):
+		case key.Matches(msg, keys.Switch.binding):
 			if m.switchLightStatus.State != common.Running {
 				m.switchLightStatus = m.switchLightStatus.Start()
 				return m, m.switchLightCmd()
 			}
 			return m, nil
-		case key.Matches(msg, keys.Discover):
+		case key.Matches(msg, keys.Discover.binding):
 			if m.discoverStatus.State != common.Running {
 				m.discoverStatus = m.discoverStatus.Start()
 				return m, m.discoverCommand()
 			}
 			return m, nil
-		case key.Matches(msg, keys.EraseAll):
+		case key.Matches(msg, keys.EraseAll.binding):
 			if m.eraseAllStatus.State != common.Running {
 				m.eraseAllStatus = m.eraseAllStatus.Start()
 				return m, m.eraseAllCommand()
 			}
 			return m, nil
-		case key.Matches(msg, keys.Quit):
+		case key.Matches(msg, keys.Quit.binding):
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
@@ -231,30 +231,35 @@ func (m Model) View() string {
 	return docStyle.Render(body)
 }
 
+type keyAction struct {
+	binding key.Binding
+	run     func(*client.Client) (tea.Model, tea.Cmd)
+}
+
 type keyMap struct {
-	Refresh  key.Binding
-	Switch   key.Binding
-	Discover key.Binding
-	EraseAll key.Binding
-	Quit     key.Binding
+	Refresh  keyAction
+	Switch   keyAction
+	Discover keyAction
+	EraseAll keyAction
+	Quit     keyAction
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Refresh, k.Switch, k.Discover, k.EraseAll, k.Quit}
+	return []key.Binding{k.Refresh.binding, k.Switch.binding, k.Discover.binding, k.EraseAll.binding, k.Quit.binding}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Refresh, k.Switch, k.Discover, k.EraseAll, k.Quit},
+		{k.Refresh.binding, k.Switch.binding, k.Discover.binding, k.EraseAll.binding, k.Quit.binding},
 	}
 }
 
 var keys = keyMap{
-	Refresh:  key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "Refresh")),
-	Switch:   key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "Switch light")),
-	Discover: key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "Discover lights in network")),
-	EraseAll: key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "Erase all lights")),
-	Quit:     key.NewBinding(key.WithKeys("ctrl+q"), key.WithHelp("ctrl+q", "Quit program")),
+	Refresh:  keyAction{binding: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "Refresh")), run: nil},
+	Switch:   keyAction{binding: key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "Switch light")), run: nil},
+	Discover: keyAction{binding: key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "Discover lights in network")), run: nil},
+	EraseAll: keyAction{binding: key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "Erase all lights"))},
+	Quit:     keyAction{binding: key.NewBinding(key.WithKeys("ctrl+q"), key.WithHelp("ctrl+q", "Quit program")), run: nil},
 }
 
 type dimensions struct {
