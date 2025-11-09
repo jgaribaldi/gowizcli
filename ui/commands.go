@@ -24,10 +24,10 @@ func (m Model) fetchCmd() tea.Cmd {
 
 func (m Model) switchLightCmd() tea.Cmd {
 	return func() tea.Msg {
-		if len(m.lights) > 0 {
+		if len(m.tableData.lights) > 0 {
 			selectedRow := m.table.Cursor()
-			if selectedRow < len(m.lights) {
-				selectedLight := m.lights[selectedRow]
+			if selectedRow < len(m.tableData.lights) {
+				selectedLight := m.tableData.lights[selectedRow]
 
 				cmd := switchCommand(selectedLight)
 				result, err := m.client.Execute(cmd)

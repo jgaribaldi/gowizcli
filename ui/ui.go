@@ -23,7 +23,8 @@ type Model struct {
 	table             table.Model
 	help              help.Model
 	dimensions        dimensions
-	lights            []wiz.Light
+	// lights            []wiz.Light
+	tableData tableData
 }
 
 func NewModel(client *client.Client, bcastAddr string) Model {
@@ -40,7 +41,7 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 	)
 
 	t.SetStyles(tableStyles())
-	var lights = make([]wiz.Light, 0)
+	// var lights = make([]wiz.Light, 0)
 
 	initialStatus := *common.NewCmdStatus()
 	initialStatus = initialStatus.Start()
@@ -54,7 +55,8 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 		switchLightStatus: *common.NewCmdStatus(),
 		table:             t,
 		help:              help.New(),
-		lights:            lights,
+		// lights:            lights,
+		tableData: tableData{},
 	}
 }
 
@@ -69,7 +71,7 @@ func (m Model) update(lights []wiz.Light) Model {
 	}
 
 	m.table.SetRows(newRows)
-	m.lights = lights
+	m.tableData.lights = lights
 	m.table.Focus()
 
 	return m
@@ -83,39 +85,46 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.fetchLigthsStatus = m.fetchLigthsStatus.Finish()
 
 		if msg.err != nil {
+			m.tableData.err = msg.err
 			return m, nil
-		} else {
-			return m.update(msg.lights), nil
 		}
+		m.tableData.err = nil
+		return m.update(msg.lights), nil
 	case switchDoneMsg:
 		m.switchLightStatus = m.switchLightStatus.Finish()
 
 		if msg.err != nil {
+			m.tableData.err = msg.err
 			return m, nil
-		} else {
-			var lights []wiz.Light = make([]wiz.Light, len(m.lights))
-			copy(lights, m.lights)
-
-			for idx, l := range m.lights {
-				if l.Id == msg.light.Id {
-					lights[idx] = msg.light
-					break
-				}
-			}
-
-			return m.update(lights), nil
 		}
+
+		m.tableData.err = nil
+		var lights []wiz.Light = make([]wiz.Light, len(m.tableData.lights))
+		copy(lights, m.tableData.lights)
+
+		for idx, l := range m.tableData.lights {
+			if l.Id == msg.light.Id {
+				lights[idx] = msg.light
+				break
+			}
+		}
+
+		return m.update(lights), nil
 	case discoverDoneMsg:
 		m.discoverStatus = m.discoverStatus.Finish()
 		if msg.err != nil || len(msg.lights) == 0 {
+			m.tableData.err = msg.err
 			return m, nil
 		}
+		m.tableData.err = nil
 		return m.update(msg.lights), nil
 	case eraseAllLightsDoneMsg:
 		m.eraseAllStatus = m.eraseAllStatus.Finish()
 		if msg.err != nil {
+			m.tableData.err = msg.err
 			return m, nil
 		}
+		m.tableData.err = nil
 		return m.update([]wiz.Light{}), nil
 	case tea.KeyMsg:
 		switch {
@@ -192,6 +201,11 @@ func (m Model) View() string {
 	if m.eraseAllStatus.State == common.Running {
 		message := boxStyle.Render("Erasing lights...")
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
+	}
+
+	if m.tableData.err != nil {
+		// TODO: better handle error display
+		return m.tableData.err.Error()
 	}
 
 	title := titleStyle.
@@ -368,6 +382,11 @@ func parseMacAddress(src string) string {
 		}
 	}
 	return b.String()
+}
+
+type tableData struct {
+	lights []wiz.Light
+	err    error
 }
 
 var welcomeMsg string = "Welcome to Gowizcli! A Wiz client written in Go"
