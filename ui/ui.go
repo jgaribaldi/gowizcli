@@ -53,61 +53,6 @@ func (m Model) Init() tea.Cmd {
 	return t
 }
 
-func merge(existing []wiz.Light, incoming []wiz.Light) []wiz.Light {
-	var existingIds = make(map[string]wiz.Light, len(existing))
-	for _, l := range existing {
-		existingIds[l.Id] = l
-	}
-
-	var result = make([]wiz.Light, 0, len(existing)+len(incoming))
-	seen := make(map[string]struct{}, len(incoming))
-
-	for _, l := range incoming {
-		result = append(result, l)
-		seen[l.Id] = struct{}{}
-	}
-
-	for _, l := range existing {
-		if _, ok := seen[l.Id]; !ok {
-			result = append(result, l)
-		}
-	}
-	return result
-}
-
-func (m Model) handleCmdFinish(cmd CmdDone) Model {
-	switch cmd.cmd.(type) {
-	case CmdDiscover:
-		m.tableData = tableData{
-			err:    cmd.err,
-			lights: merge(m.tableData.lights, cmd.lights),
-		}
-	case CmdSwitch:
-		m.tableData = tableData{
-			err:    cmd.err,
-			lights: merge(m.tableData.lights, cmd.lights),
-		}
-	case CmdEraseAll:
-		m.tableData = tableData{
-			err:    cmd.err,
-			lights: []wiz.Light{},
-		}
-	case CmdRefresh:
-		m.tableData = tableData{
-			err:    cmd.err,
-			lights: merge(m.tableData.lights, cmd.lights),
-		}
-	}
-
-	rows := make([]table.Row, len(m.tableData.lights))
-	for i, l := range m.tableData.lights {
-		rows[i] = lightToRow(l)
-	}
-	m.table.SetRows(rows)
-
-	return m
-}
-
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -148,30 +93,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func lightToRow(l wiz.Light) table.Row {
-	if l.IsOn != nil {
-		if *l.IsOn {
-			return table.Row{
-				l.IpAddress,
-				parseMacAddress(l.MacAddress),
-				"On",
-			}
-		} else {
-			return table.Row{
-				l.IpAddress,
-				parseMacAddress(l.MacAddress),
-				"Off",
-			}
-		}
-	} else {
-		return table.Row{
-			l.IpAddress,
-			parseMacAddress(l.MacAddress),
-			"Unknown",
-		}
-	}
-}
-
 func (m Model) View() string {
 	if m.cmdRunner.lastCmdStatus.State == common.Running {
 		message := boxStyle.Render("Running command...")
@@ -204,6 +125,85 @@ func (m Model) View() string {
 		Render(m.table.View())
 	body := lipgloss.JoinVertical(lipgloss.Left, title, tableBody, helpline)
 	return docStyle.Render(body)
+}
+
+func (m Model) handleCmdFinish(cmd CmdDone) Model {
+	switch cmd.cmd.(type) {
+	case CmdDiscover:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: merge(m.tableData.lights, cmd.lights),
+		}
+	case CmdSwitch:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: merge(m.tableData.lights, cmd.lights),
+		}
+	case CmdEraseAll:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: []wiz.Light{},
+		}
+	case CmdRefresh:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: merge(m.tableData.lights, cmd.lights),
+		}
+	}
+
+	rows := make([]table.Row, len(m.tableData.lights))
+	for i, l := range m.tableData.lights {
+		rows[i] = lightToRow(l)
+	}
+	m.table.SetRows(rows)
+
+	return m
+}
+
+func merge(existing []wiz.Light, incoming []wiz.Light) []wiz.Light {
+	var existingIds = make(map[string]wiz.Light, len(existing))
+	for _, l := range existing {
+		existingIds[l.Id] = l
+	}
+
+	var result = make([]wiz.Light, 0, len(existing)+len(incoming))
+	seen := make(map[string]struct{}, len(incoming))
+
+	for _, l := range incoming {
+		result = append(result, l)
+		seen[l.Id] = struct{}{}
+	}
+
+	for _, l := range existing {
+		if _, ok := seen[l.Id]; !ok {
+			result = append(result, l)
+		}
+	}
+	return result
+}
+
+func lightToRow(l wiz.Light) table.Row {
+	if l.IsOn != nil {
+		if *l.IsOn {
+			return table.Row{
+				l.IpAddress,
+				parseMacAddress(l.MacAddress),
+				"On",
+			}
+		} else {
+			return table.Row{
+				l.IpAddress,
+				parseMacAddress(l.MacAddress),
+				"Off",
+			}
+		}
+	} else {
+		return table.Row{
+			l.IpAddress,
+			parseMacAddress(l.MacAddress),
+			"Unknown",
+		}
+	}
 }
 
 type keyAction struct {
