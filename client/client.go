@@ -4,22 +4,26 @@ import (
 	"fmt"
 	"gowizcli/db"
 	"gowizcli/wiz"
+	"strings"
 )
 
 type Client struct {
 	lightsDb     db.LightsDatabase
 	wizClient    wiz.Client
+	bcastAddr    string
 	getLuminance func(float64, float64) (float64, error)
 }
 
 func NewClient(
 	lightsDb db.LightsDatabase,
 	wizClient wiz.Client,
+	bcastAddr string,
 	getLuminance func(float64, float64) (float64, error),
 ) (*Client, error) {
 	return &Client{
 		lightsDb:     lightsDb,
 		wizClient:    wizClient,
+		bcastAddr:    bcastAddr,
 		getLuminance: getLuminance,
 	}, nil
 }
@@ -28,7 +32,7 @@ func (c Client) Execute(command Command) ([]wiz.Light, error) {
 	switch command.CommandType {
 
 	case Discover:
-		return c.executeDiscover(command.Parameters[0])
+		return c.executeDiscover()
 
 	case Show:
 		return c.executeShow()
@@ -62,8 +66,25 @@ type Command struct {
 	Parameters  []string
 }
 
-func (c Client) executeDiscover(bcastAddr string) ([]wiz.Light, error) {
-	lights, err := c.wizClient.Discover(bcastAddr)
+func (c Command) String() string {
+	params := strings.Join(c.Parameters, ", ")
+	switch c.CommandType {
+	case Discover:
+		return "Discover " + params
+	case Show:
+		return "Show " + params
+	case Reset:
+		return "Reset " + params
+	case TurnOn:
+		return "Turn On " + params
+	case TurnOff:
+		return "Turn Off " + params
+	}
+	return ""
+}
+
+func (c Client) executeDiscover() ([]wiz.Light, error) {
+	lights, err := c.wizClient.Discover(c.bcastAddr)
 	if err != nil {
 		return nil, err
 	}

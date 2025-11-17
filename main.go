@@ -40,13 +40,14 @@ func main() {
 	c, err := client.NewClient(
 		db,
 		wiz,
+		config.Network.BroadcastAddress,
 		orchestrator.GetCurrentLuminance,
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	p := tea.NewProgram(ui.NewModel(c, config.Network.BroadcastAddress), tea.WithAltScreen())
+	p := tea.NewProgram(ui.NewModel(c), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}

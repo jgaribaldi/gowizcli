@@ -1,103 +1,141 @@
 package ui
 
 import (
-	"fmt"
 	"gowizcli/client"
+	"gowizcli/ui/common"
 	"gowizcli/wiz"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m Model) fetchCmd() tea.Cmd {
-	return func() tea.Msg {
+type CmdRunner struct {
+	client        *client.Client
+	lastCmdStatus common.CmdStatus
+	lastCmdErr    error
+}
+
+func NewCmdRunner(client *client.Client) CmdRunner {
+	return CmdRunner{
+		client:        client,
+		lastCmdStatus: *common.NewCmdStatus(),
+		lastCmdErr:    nil,
+	}
+}
+
+func (c CmdRunner) Run(cmd Command) (CmdRunner, tea.Cmd) {
+	if c.lastCmdStatus.State == common.Ready || c.lastCmdStatus.State == common.Done {
+		c.lastCmdStatus = c.lastCmdStatus.Start()
+		return c, func() tea.Msg {
+			result, err := cmd.Run()
+			return CmdDone{
+				lights: result,
+				err:    err,
+				cmd:    cmd,
+			}
+		}
+	}
+	return c, nil
+}
+
+func (c CmdRunner) Finalize(msg CmdDone) CmdRunner {
+	c.lastCmdStatus = c.lastCmdStatus.Finish()
+	c.lastCmdErr = msg.err
+	return c
+}
+
+type CmdDone struct {
+	lights []wiz.Light
+	err    error
+	cmd    Command
+}
+
+type Command interface {
+	Run() ([]wiz.Light, error)
+}
+
+type CmdDiscover struct {
+	client *client.Client
+}
+
+func NewCmdDiscover(client *client.Client) CmdDiscover {
+	return CmdDiscover{
+		client: client,
+	}
+}
+
+func (c CmdDiscover) Run() ([]wiz.Light, error) {
+	cmd := client.Command{
+		CommandType: client.Discover,
+		Parameters:  []string{},
+	}
+	return c.client.Execute(cmd)
+}
+
+type CmdSwitch struct {
+	client *client.Client
+	light  wiz.Light
+}
+
+func NewCmdSwitch(client *client.Client, light wiz.Light) CmdSwitch {
+	return CmdSwitch{
+		client: client,
+		light:  light,
+	}
+}
+
+func (c CmdSwitch) Run() ([]wiz.Light, error) {
+	if c.light.IsOn != nil && *c.light.IsOn {
 		cmd := client.Command{
-			CommandType: client.Show,
-			Parameters:  []string{},
-		}
-		result, err := m.client.Execute(cmd)
-		return fetchDoneMsg{
-			lights: result,
-			err:    err,
-		}
-	}
-}
-
-func (m Model) switchLightCmd() tea.Cmd {
-	return func() tea.Msg {
-		if len(m.tableData.lights) > 0 {
-			selectedRow := m.table.Cursor()
-			if selectedRow < len(m.tableData.lights) {
-				selectedLight := m.tableData.lights[selectedRow]
-
-				cmd := switchCommand(selectedLight)
-				result, err := m.client.Execute(cmd)
-
-				if len(result) > 0 {
-					return switchDoneMsg{
-						light: result[0],
-						err:   err,
-					}
-				} else {
-					return switchDoneMsg{
-						err: err,
-					}
-				}
-			}
-			return switchDoneMsg{
-				err: fmt.Errorf("invalid selected row"),
-			}
-		}
-		return switchDoneMsg{
-			err: fmt.Errorf("no lights to turn off/on"),
-		}
-	}
-}
-
-func switchCommand(light wiz.Light) client.Command {
-	if light.IsOn != nil && *light.IsOn {
-		return client.Command{
 			CommandType: client.TurnOff,
 			Parameters: []string{
-				light.Id,
+				c.light.Id,
 			},
 		}
+		return c.client.Execute(cmd)
+	}
 
-	} else {
-		return client.Command{
-			CommandType: client.TurnOn,
-			Parameters: []string{
-				light.Id,
-			},
-		}
+	cmd := client.Command{
+		CommandType: client.TurnOn,
+		Parameters: []string{
+			c.light.Id,
+		},
+	}
+	return c.client.Execute(cmd)
+}
+
+type CmdEraseAll struct {
+	client *client.Client
+}
+
+func NewCmdEraseAll(client *client.Client) CmdEraseAll {
+	return CmdEraseAll{
+		client: client,
 	}
 }
 
-func (m Model) discoverCommand() tea.Cmd {
-	return func() tea.Msg {
-		cmd := client.Command{
-			CommandType: client.Discover,
-			Parameters: []string{
-				m.bcastAddr,
-			},
-		}
-		result, err := m.client.Execute(cmd)
-		return discoverDoneMsg{
-			lights: result,
-			err:    err,
-		}
+func (c CmdEraseAll) Run() ([]wiz.Light, error) {
+	cmd := client.Command{
+		CommandType: client.Reset,
+		Parameters:  []string{},
+	}
+
+	return c.client.Execute(cmd)
+}
+
+type CmdRefresh struct {
+	client *client.Client
+}
+
+func NewCmdRefresh(client *client.Client) CmdRefresh {
+	return CmdRefresh{
+		client: client,
 	}
 }
 
-func (m Model) eraseAllCommand() tea.Cmd {
-	return func() tea.Msg {
-		cmd := client.Command{
-			CommandType: client.Reset,
-			Parameters:  []string{},
-		}
-
-		_, err := m.client.Execute(cmd)
-		return eraseAllLightsDoneMsg{
-			err: err,
-		}
+func (c CmdRefresh) Run() ([]wiz.Light, error) {
+	cmd := client.Command{
+		CommandType: client.Show,
+		Parameters:  []string{},
 	}
+	return c.client.Execute(cmd)
 }

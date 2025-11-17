@@ -14,20 +14,14 @@ import (
 )
 
 type Model struct {
-	client            *client.Client
-	bcastAddr         string
-	fetchLigthsStatus common.CmdStatus
-	discoverStatus    common.CmdStatus
-	eraseAllStatus    common.CmdStatus
-	switchLightStatus common.CmdStatus
-	table             table.Model
-	help              help.Model
-	dimensions        dimensions
-	// lights            []wiz.Light
-	tableData tableData
+	table      table.Model
+	help       help.Model
+	dimensions dimensions
+	tableData  tableData
+	cmdRunner  CmdRunner
 }
 
-func NewModel(client *client.Client, bcastAddr string) Model {
+func NewModel(client *client.Client) Model {
 	columns := []table.Column{
 		{Title: "IP Address", Width: 20},
 		{Title: "MAC Address", Width: 20},
@@ -41,38 +35,75 @@ func NewModel(client *client.Client, bcastAddr string) Model {
 	)
 
 	t.SetStyles(tableStyles())
-	// var lights = make([]wiz.Light, 0)
 
 	initialStatus := *common.NewCmdStatus()
 	initialStatus = initialStatus.Start()
 
 	return Model{
-		client:            client,
-		bcastAddr:         bcastAddr,
-		fetchLigthsStatus: initialStatus,
-		discoverStatus:    *common.NewCmdStatus(),
-		eraseAllStatus:    *common.NewCmdStatus(),
-		switchLightStatus: *common.NewCmdStatus(),
-		table:             t,
-		help:              help.New(),
-		// lights:            lights,
+		table:     t,
+		help:      help.New(),
 		tableData: tableData{},
+		cmdRunner: NewCmdRunner(client),
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.fetchCmd()
+	cmd := NewCmdRefresh(m.cmdRunner.client)
+	_, t := m.cmdRunner.Run(cmd)
+	return t
 }
 
-func (m Model) update(lights []wiz.Light) Model {
-	var newRows = make([]table.Row, len(lights))
-	for idx, l := range lights {
-		newRows[idx] = lightToRow(l)
+func merge(existing []wiz.Light, incoming []wiz.Light) []wiz.Light {
+	var existingIds = make(map[string]wiz.Light, len(existing))
+	for _, l := range existing {
+		existingIds[l.Id] = l
 	}
 
-	m.table.SetRows(newRows)
-	m.tableData.lights = lights
-	m.table.Focus()
+	var result = make([]wiz.Light, 0, len(existing)+len(incoming))
+	seen := make(map[string]struct{}, len(incoming))
+
+	for _, l := range incoming {
+		result = append(result, l)
+		seen[l.Id] = struct{}{}
+	}
+
+	for _, l := range existing {
+		if _, ok := seen[l.Id]; !ok {
+			result = append(result, l)
+		}
+	}
+	return result
+}
+
+func (m Model) handleCmdFinish(cmd CmdDone) Model {
+	switch cmd.cmd.(type) {
+	case CmdDiscover:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: merge(m.tableData.lights, cmd.lights),
+		}
+	case CmdSwitch:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: merge(m.tableData.lights, cmd.lights),
+		}
+	case CmdEraseAll:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: []wiz.Light{},
+		}
+	case CmdRefresh:
+		m.tableData = tableData{
+			err:    cmd.err,
+			lights: merge(m.tableData.lights, cmd.lights),
+		}
+	}
+
+	rows := make([]table.Row, len(m.tableData.lights))
+	for i, l := range m.tableData.lights {
+		rows[i] = lightToRow(l)
+	}
+	m.table.SetRows(rows)
 
 	return m
 }
@@ -81,79 +112,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case fetchDoneMsg:
-		m.fetchLigthsStatus = m.fetchLigthsStatus.Finish()
-
-		if msg.err != nil {
-			m.tableData.err = msg.err
-			return m, nil
-		}
-		m.tableData.err = nil
-		return m.update(msg.lights), nil
-	case switchDoneMsg:
-		m.switchLightStatus = m.switchLightStatus.Finish()
-
-		if msg.err != nil {
-			m.tableData.err = msg.err
-			return m, nil
-		}
-
-		m.tableData.err = nil
-		var lights []wiz.Light = make([]wiz.Light, len(m.tableData.lights))
-		copy(lights, m.tableData.lights)
-
-		for idx, l := range m.tableData.lights {
-			if l.Id == msg.light.Id {
-				lights[idx] = msg.light
-				break
-			}
-		}
-
-		return m.update(lights), nil
-	case discoverDoneMsg:
-		m.discoverStatus = m.discoverStatus.Finish()
-		if msg.err != nil || len(msg.lights) == 0 {
-			m.tableData.err = msg.err
-			return m, nil
-		}
-		m.tableData.err = nil
-		return m.update(msg.lights), nil
-	case eraseAllLightsDoneMsg:
-		m.eraseAllStatus = m.eraseAllStatus.Finish()
-		if msg.err != nil {
-			m.tableData.err = msg.err
-			return m, nil
-		}
-		m.tableData.err = nil
-		return m.update([]wiz.Light{}), nil
+	case CmdDone:
+		m.cmdRunner = m.cmdRunner.Finalize(msg)
+		return m.handleCmdFinish(msg), nil
 	case tea.KeyMsg:
+		var cmd Command
+
 		switch {
 		case key.Matches(msg, keys.Refresh.binding):
-			if m.fetchLigthsStatus.State != common.Running {
-				m.fetchLigthsStatus = m.fetchLigthsStatus.Start()
-				return m, m.fetchCmd()
-			}
-			return m, nil
+			cmd = NewCmdRefresh(m.cmdRunner.client)
 		case key.Matches(msg, keys.Switch.binding):
-			if m.switchLightStatus.State != common.Running {
-				m.switchLightStatus = m.switchLightStatus.Start()
-				return m, m.switchLightCmd()
+			if len(m.tableData.lights) == 0 {
+				return m, nil
 			}
-			return m, nil
+			selected := m.table.Cursor()
+			cmd = NewCmdSwitch(m.cmdRunner.client, m.tableData.lights[selected])
 		case key.Matches(msg, keys.Discover.binding):
-			if m.discoverStatus.State != common.Running {
-				m.discoverStatus = m.discoverStatus.Start()
-				return m, m.discoverCommand()
-			}
-			return m, nil
+			cmd = NewCmdDiscover(m.cmdRunner.client)
 		case key.Matches(msg, keys.EraseAll.binding):
-			if m.eraseAllStatus.State != common.Running {
-				m.eraseAllStatus = m.eraseAllStatus.Start()
-				return m, m.eraseAllCommand()
-			}
-			return m, nil
+			cmd = NewCmdEraseAll(m.cmdRunner.client)
 		case key.Matches(msg, keys.Quit.binding):
 			return m, tea.Quit
+		}
+
+		if cmd != nil {
+			cr, t := m.cmdRunner.Run(cmd)
+			m.cmdRunner = cr
+			return m, t
 		}
 	case tea.WindowSizeMsg:
 		return m.resize(msg), nil
@@ -188,18 +173,8 @@ func lightToRow(l wiz.Light) table.Row {
 }
 
 func (m Model) View() string {
-	if m.fetchLigthsStatus.State == common.Running {
-		message := boxStyle.Render("Fetching lights...")
-		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
-	}
-
-	if m.discoverStatus.State == common.Running {
-		message := boxStyle.Render("Discovering lights...")
-		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
-	}
-
-	if m.eraseAllStatus.State == common.Running {
-		message := boxStyle.Render("Erasing lights...")
+	if m.cmdRunner.lastCmdStatus.State == common.Running {
+		message := boxStyle.Render("Running command...")
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
 	}
 
