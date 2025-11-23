@@ -20,11 +20,11 @@ func TestWizDiscover(t *testing.T) {
 
 	for i, tt := range tests {
 		wiz := Wiz{
-			BulbClient:  MockBulbClient{MockResponse: tt.response},
-			TimeoutSecs: 10,
+			BulbClient: MockBulbClient{MockResponse: tt.response},
+			NetConfig:  NetworkConfig{BroadcastAddress: "192.168.1.255", QueryTimeoutSec: 1},
 		}
 		t.Run(fmt.Sprintf("Test %d", i+1), func(t *testing.T) {
-			got, _ := wiz.Discover("192.168.1.255")
+			got, _ := wiz.Discover()
 
 			if got[0].IpAddress != tt.want[0].IpAddress || got[0].MacAddress != tt.want[0].MacAddress {
 				t.Errorf("Got %s but want %s\n", got[0].IpAddress, tt.want[0].IpAddress)
