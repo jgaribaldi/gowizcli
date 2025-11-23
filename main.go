@@ -21,12 +21,12 @@ func main() {
 		panic(err)
 	}
 
-	conn, err := wiz.NewConnection(config.Network.QueryTimeoutSec)
+	bulbClient, err := wiz.NewUDPClient(config.Network.QueryTimeoutSec)
 	if err != nil {
 		panic(err)
 	}
 
-	wiz := wiz.NewWiz(conn.Query)
+	wiz := wiz.NewWiz(bulbClient)
 	ipGelocation := luminance.NewIpGeolocation(
 		config.Luminance.IpGeolocation.Url,
 		config.Luminance.IpGeolocation.ApiKey,

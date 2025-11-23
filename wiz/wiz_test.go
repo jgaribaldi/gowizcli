@@ -7,10 +7,10 @@ import (
 
 func TestWizDiscover(t *testing.T) {
 	var tests = []struct {
-		response QueryResponse
+		response BulbResponse
 		want     []Light
 	}{
-		{QueryResponse{
+		{BulbResponse{
 			SourceIpAddress: "192.168.1.174",
 			Response:        []byte("{\"method\":\"getPilot\",\"env\":\"pro\",\"result\":{\"mac\":\"cc40857ce53c\",\"rssi\":-66,\"state\":true,\"sceneId\":8,\"speed\":100,\"dimming\":100}}"),
 		}, []Light{
@@ -19,12 +19,13 @@ func TestWizDiscover(t *testing.T) {
 	}
 
 	for idx, tt := range tests {
-		wiz := NewWiz(func(ipAddress string, message []byte) ([]QueryResponse, error) {
-			var response []QueryResponse
-			response = make([]QueryResponse, 0)
-			response = append(response, tt.response)
-			return response, nil
-		})
+		wiz := NewWiz(MockBulbClient{MockResponse: tt.response})
+		// wiz := NewWiz(func(ipAddress string, message []byte) ([]BulbResponse, error) {
+		// 	var response []BulbResponse
+		// 	response = make([]BulbResponse, 0)
+		// 	response = append(response, tt.response)
+		// 	return response, nil
+		// })
 
 		t.Run(fmt.Sprintf("Test %d", idx+1), func(t *testing.T) {
 			got, _ := wiz.Discover("192.168.1.255")
@@ -34,4 +35,15 @@ func TestWizDiscover(t *testing.T) {
 			}
 		})
 	}
+}
+
+type MockBulbClient struct {
+	MockResponse BulbResponse
+}
+
+func (m MockBulbClient) Query(bcastAddr string, message []byte) ([]BulbResponse, error) {
+	var response []BulbResponse
+	response = make([]BulbResponse, 0)
+	response = append(response, m.MockResponse)
+	return response, nil
 }

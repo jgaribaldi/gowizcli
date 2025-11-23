@@ -22,14 +22,12 @@ type Light struct {
 }
 
 type Wiz struct {
-	query func(ipAddress string, message []byte) ([]QueryResponse, error)
+	bulbClient BulbClient
 }
 
-func NewWiz(
-	query func(ipAddress string, message []byte) ([]QueryResponse, error),
-) *Wiz {
+func NewWiz(bulbClient BulbClient) *Wiz {
 	return &Wiz{
-		query: query,
+		bulbClient: bulbClient,
 	}
 }
 
@@ -42,14 +40,12 @@ func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 		return nil, err
 	}
 
-	queryResponse, err := w.query(bcastAddr, mGetPilot)
+	queryResponse, err := w.bulbClient.Query(bcastAddr, mGetPilot)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []Light
-	result = make([]Light, 0)
-
+	var result []Light = make([]Light, 0)
 	for _, r := range queryResponse {
 		getPilotResult := Response{}
 
@@ -78,7 +74,7 @@ func (w Wiz) TurnOn(light *Light) (*Light, error) {
 		return nil, err
 	}
 
-	_, err = w.query(light.IpAddress, mTurnOn)
+	_, err = w.bulbClient.Query(light.IpAddress, mTurnOn)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +92,7 @@ func (w Wiz) TurnOff(light *Light) (*Light, error) {
 		return nil, err
 	}
 
-	_, err = w.query(light.IpAddress, mTurnOff)
+	_, err = w.bulbClient.Query(light.IpAddress, mTurnOff)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +109,7 @@ func (w Wiz) Status(light *Light) (*Light, error) {
 		return nil, err
 	}
 
-	queryResponse, err := w.query(light.IpAddress, mGetPilot)
+	queryResponse, err := w.bulbClient.Query(light.IpAddress, mGetPilot)
 	if err != nil {
 		return nil, err
 	}
