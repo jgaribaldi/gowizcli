@@ -27,7 +27,7 @@ func main() {
 	}
 
 	wiz := wiz.NewWiz(bulbClient)
-	ipGelocation := luminance.NewIpGeolocation(
+	astronomy := luminance.NewIpGeolocation(
 		config.Luminance.IpGeolocation.Url,
 		config.Luminance.IpGeolocation.ApiKey,
 		config.Luminance.IpGeolocation.QueryTimeout,
@@ -36,7 +36,7 @@ func main() {
 		config.Luminance.OpenMeteo.Url,
 		config.Luminance.OpenMeteo.QueryTimeout,
 	)
-	luminance := luminance.NewLuminance(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
+	luminance := luminance.NewLuminance(astronomy, meteorology.GetCurrent)
 
 	c, err := client.NewClient(
 		db,

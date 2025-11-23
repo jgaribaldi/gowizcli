@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+type Astronomy interface {
+	GetSolarElevation(latitude, longitude float64) (*AstronomyData, error)
+}
+
 type AstronomyData struct {
 	SunAltitude float64 `json:"sun_altitude"`
 }

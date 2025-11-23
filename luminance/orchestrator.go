@@ -3,22 +3,22 @@ package luminance
 import "time"
 
 type Luminance struct {
-	solarElevationGetter    func(float64, float64) (*AstronomyData, error)
+	astronomy               Astronomy
 	weatherConditionsGetter func(float64, float64) (*MeteorologyData, error)
 }
 
 func NewLuminance(
-	solarElevationGetter func(float64, float64) (*AstronomyData, error),
+	astronomy Astronomy,
 	weatherConditionsGetter func(float64, float64) (*MeteorologyData, error),
 ) *Luminance {
 	return &Luminance{
-		solarElevationGetter:    solarElevationGetter,
+		astronomy:               astronomy,
 		weatherConditionsGetter: weatherConditionsGetter,
 	}
 }
 
 func (o Luminance) GetCurrent(latitude, longitude float64) (float64, error) {
-	astronomyData, err := o.solarElevationGetter(latitude, longitude)
+	astronomyData, err := o.astronomy.GetSolarElevation(latitude, longitude)
 	if err != nil {
 		return -1.0, err
 	}
