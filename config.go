@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gowizcli/luminance"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -9,12 +10,8 @@ import (
 
 type Config struct {
 	Luminance struct {
-		IpGeolocation struct {
-			ApiKey       string `yaml:"apiKey" envconfig:"IPGEOLOCATION_APIKEY"`
-			Url          string `yaml:"url"`
-			QueryTimeout int    `yaml:"queryTimeout"`
-		} `yaml:"ipGeolocation"`
-		OpenMeteo struct {
+		IpGeolocation luminance.IpGeolocationConfig `yaml:"ipGeolocation"`
+		OpenMeteo     struct {
 			Url          string `yaml:"url"`
 			QueryTimeout int    `yaml:"queryTimeout"`
 		} `yaml:"openMeteo"`
