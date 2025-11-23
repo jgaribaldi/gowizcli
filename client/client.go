@@ -8,14 +8,14 @@ import (
 )
 
 type Client struct {
-	lightsDb     db.LightsDatabase
+	lightsDb     db.Storage
 	wizClient    wiz.Client
 	bcastAddr    string
 	getLuminance func(float64, float64) (float64, error)
 }
 
 func NewClient(
-	lightsDb db.LightsDatabase,
+	lightsDb db.Storage,
 	wizClient wiz.Client,
 	bcastAddr string,
 	getLuminance func(float64, float64) (float64, error),
