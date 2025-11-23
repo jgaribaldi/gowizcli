@@ -15,7 +15,8 @@ func main() {
 	var config Config
 	readConfigFile(&config)
 	readConfigEnvironment(&config)
-	db, err := db.NewConnection(config.Database.File)
+
+	db, err := db.NewSQLiteDB(config.Database.File)
 	if err != nil {
 		panic(err)
 	}

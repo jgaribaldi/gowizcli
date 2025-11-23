@@ -11,35 +11,35 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type LightsDatabase interface {
+type Storage interface {
 	Upsert(bulb wiz.Light) (*wiz.Light, error)
 	FindAll() ([]wiz.Light, error)
 	EraseAll()
 	FindById(id string) (*wiz.Light, error)
 }
 
-type Connection struct {
+type SQLiteDB struct {
 	db *gorm.DB
 }
 
-func NewConnection(filename string) (*Connection, error) {
+func NewSQLiteDB(filename string) (*SQLiteDB, error) {
 	db, err := gorm.Open(sqlite.Open(filename), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	db.AutoMigrate(&storedWizLight{})
 
-	return &Connection{db: db}, nil
+	return &SQLiteDB{db: db}, nil
 }
 
-func (c Connection) Upsert(bulb wiz.Light) (*wiz.Light, error) {
+func (s SQLiteDB) Upsert(bulb wiz.Light) (*wiz.Light, error) {
 	storedWizLight := storedWizLight{
 		ID:         bulb.Id,
 		MacAddress: bulb.MacAddress,
 		IpAddress:  bulb.IpAddress,
 	}
 
-	result := c.db.Clauses(clause.OnConflict{
+	result := s.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "mac_address"}},
 		DoUpdates: clause.AssignmentColumns([]string{"ip_address"}),
 	}).Create(&storedWizLight)
@@ -54,10 +54,10 @@ func (c Connection) Upsert(bulb wiz.Light) (*wiz.Light, error) {
 	}, nil
 }
 
-func (c Connection) FindAll() ([]wiz.Light, error) {
+func (s SQLiteDB) FindAll() ([]wiz.Light, error) {
 	var storedWizLights []storedWizLight
 	storedWizLights = make([]storedWizLight, 0)
-	queryResult := c.db.Find(&storedWizLights)
+	queryResult := s.db.Find(&storedWizLights)
 
 	if queryResult.Error != nil {
 		return nil, queryResult.Error
@@ -75,15 +75,15 @@ func (c Connection) FindAll() ([]wiz.Light, error) {
 	return result, nil
 }
 
-func (c Connection) EraseAll() {
+func (s SQLiteDB) EraseAll() {
 	tableName := "stored_lights"
-	c.db.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	s.db.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
 }
 
-func (c Connection) FindById(id string) (*wiz.Light, error) {
+func (s SQLiteDB) FindById(id string) (*wiz.Light, error) {
 	storedWizLight := storedWizLight{ID: id}
 
-	queryResult := c.db.First(&storedWizLight)
+	queryResult := s.db.First(&storedWizLight)
 	if queryResult.Error != nil && errors.Is(queryResult.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("id %s not found", id)
 	}
