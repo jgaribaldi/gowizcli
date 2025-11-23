@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gowizcli/client"
 	"gowizcli/luminance"
+	"gowizcli/wiz"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -18,7 +18,7 @@ type Config struct {
 			Longitude float64 `yaml:"longitude"`
 		} `yaml:"location"`
 	} `yaml:"luminance"`
-	Network  client.NetworkConfig `yaml:"network"`
+	Network  wiz.NetworkConfig `yaml:"network"`
 	Database struct {
 		File string `yaml:"file"`
 	} `yaml:"database"`

@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type NetworkConfig struct {
+	BroadcastAddress string `yaml:"broadcastAddress"`
+	QueryTimeoutSec  int    `yaml:"queryTimeoutSec"`
+}
+
 type BulbClient interface {
 	Query(bulbQuery BulbQuery) ([]BulbResponse, error)
 }

@@ -22,8 +22,8 @@ func main() {
 	}
 
 	wiz := wiz.Wiz{
-		BulbClient:  wiz.UDPClient{},
-		TimeoutSecs: config.Network.QueryTimeoutSec,
+		BulbClient: wiz.UDPClient{},
+		NetConfig:  config.Network,
 	}
 
 	luminance := luminance.Luminance{
@@ -39,7 +39,6 @@ func main() {
 		LightsDb:  db,
 		WizClient: wiz,
 		Luminance: luminance,
-		NetConfig: config.Network,
 	}
 
 	p := tea.NewProgram(ui.NewModel(&c), tea.WithAltScreen())

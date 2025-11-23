@@ -8,7 +8,7 @@ import (
 )
 
 type Client interface {
-	Discover(bcastAddr string) ([]Light, error)
+	Discover() ([]Light, error)
 	TurnOn(light *Light) (*Light, error)
 	TurnOff(light *Light) (*Light, error)
 	Status(light *Light) (*Light, error)
@@ -22,11 +22,11 @@ type Light struct {
 }
 
 type Wiz struct {
-	BulbClient  BulbClient
-	TimeoutSecs int
+	BulbClient BulbClient
+	NetConfig  NetworkConfig
 }
 
-func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
+func (w Wiz) Discover() ([]Light, error) {
 	getPilot := NewRequestBuilder().
 		WithMethod("getPilot").
 		Build()
@@ -36,9 +36,9 @@ func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 	}
 
 	query := BulbQuery{
-		Destination: bcastAddr,
+		Destination: w.NetConfig.BroadcastAddress,
 		Message:     mGetPilot,
-		TimeoutSecs: w.TimeoutSecs,
+		TimeoutSecs: w.NetConfig.QueryTimeoutSec,
 	}
 	queryResponse, err := w.BulbClient.Query(query)
 	if err != nil {
@@ -77,7 +77,7 @@ func (w Wiz) TurnOn(light *Light) (*Light, error) {
 	query := BulbQuery{
 		Destination: light.IpAddress,
 		Message:     mTurnOn,
-		TimeoutSecs: w.TimeoutSecs,
+		TimeoutSecs: w.NetConfig.QueryTimeoutSec,
 	}
 	_, err = w.BulbClient.Query(query)
 	if err != nil {
@@ -100,7 +100,7 @@ func (w Wiz) TurnOff(light *Light) (*Light, error) {
 	query := BulbQuery{
 		Destination: light.IpAddress,
 		Message:     mTurnOff,
-		TimeoutSecs: w.TimeoutSecs,
+		TimeoutSecs: w.NetConfig.QueryTimeoutSec,
 	}
 	_, err = w.BulbClient.Query(query)
 	if err != nil {
@@ -122,7 +122,7 @@ func (w Wiz) Status(light *Light) (*Light, error) {
 	query := BulbQuery{
 		Destination: light.IpAddress,
 		Message:     mGetPilot,
-		TimeoutSecs: w.TimeoutSecs,
+		TimeoutSecs: w.NetConfig.QueryTimeoutSec,
 	}
 	queryResponse, err := w.BulbClient.Query(query)
 	if err != nil {

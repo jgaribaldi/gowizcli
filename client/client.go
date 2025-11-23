@@ -8,16 +8,10 @@ import (
 	"strings"
 )
 
-type NetworkConfig struct {
-	BroadcastAddress string `yaml:"broadcastAddress"`
-	QueryTimeoutSec  int    `yaml:"queryTimeoutSec"`
-}
-
 type Client struct {
 	LightsDb  db.Storage
 	WizClient wiz.Client
 	Luminance luminance.Luminance
-	NetConfig NetworkConfig
 }
 
 func (c Client) Execute(command Command) ([]wiz.Light, error) {
@@ -76,7 +70,7 @@ func (c Command) String() string {
 }
 
 func (c Client) executeDiscover() ([]wiz.Light, error) {
-	lights, err := c.WizClient.Discover(c.NetConfig.BroadcastAddress)
+	lights, err := c.WizClient.Discover()
 	if err != nil {
 		return nil, err
 	}
