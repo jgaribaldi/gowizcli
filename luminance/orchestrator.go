@@ -2,22 +2,22 @@ package luminance
 
 import "time"
 
-type Orchestrator struct {
+type Luminance struct {
 	solarElevationGetter    func(float64, float64) (*AstronomyData, error)
 	weatherConditionsGetter func(float64, float64) (*MeteorologyData, error)
 }
 
-func NewOrchestrator(
+func NewLuminance(
 	solarElevationGetter func(float64, float64) (*AstronomyData, error),
 	weatherConditionsGetter func(float64, float64) (*MeteorologyData, error),
-) *Orchestrator {
-	return &Orchestrator{
+) *Luminance {
+	return &Luminance{
 		solarElevationGetter:    solarElevationGetter,
 		weatherConditionsGetter: weatherConditionsGetter,
 	}
 }
 
-func (o Orchestrator) GetCurrentLuminance(latitude, longitude float64) (float64, error) {
+func (o Luminance) GetCurrent(latitude, longitude float64) (float64, error) {
 	astronomyData, err := o.solarElevationGetter(latitude, longitude)
 	if err != nil {
 		return -1.0, err

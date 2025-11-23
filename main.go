@@ -35,13 +35,13 @@ func main() {
 		config.Luminance.OpenMeteo.Url,
 		config.Luminance.OpenMeteo.QueryTimeout,
 	)
-	orchestrator := luminance.NewOrchestrator(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
+	luminance := luminance.NewLuminance(ipGelocation.GetSolarElevation, meteorology.GetCurrent)
 
 	c, err := client.NewClient(
 		db,
 		wiz,
 		config.Network.BroadcastAddress,
-		orchestrator.GetCurrentLuminance,
+		luminance.GetCurrent,
 	)
 	if err != nil {
 		panic(err)
