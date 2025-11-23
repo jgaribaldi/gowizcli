@@ -8,10 +8,16 @@ import (
 	"strings"
 )
 
+type Location struct {
+	Latitude  float64 `yaml:"latitude"`
+	Longitude float64 `yaml:"longitude"`
+}
+
 type Client struct {
 	LightsDb  db.Storage
 	WizClient wiz.Client
 	Luminance luminance.Luminance
+	Location  Location
 }
 
 func (c Client) Execute(command Command) ([]wiz.Light, error) {

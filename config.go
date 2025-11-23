@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gowizcli/client"
 	"gowizcli/luminance"
 	"gowizcli/wiz"
 	"os"
@@ -13,10 +14,7 @@ type Config struct {
 	Luminance struct {
 		IpGeolocation luminance.IpGeolocationConfig `yaml:"ipGeolocation"`
 		OpenMeteo     luminance.OpenMeteoConfig     `yaml:"openMeteo"`
-		Location      struct {
-			Latitude  float64 `yaml:"latitude"`
-			Longitude float64 `yaml:"longitude"`
-		} `yaml:"location"`
+		Location      client.Location               `yaml:"location"`
 	} `yaml:"luminance"`
 	Network  wiz.NetworkConfig `yaml:"network"`
 	Database struct {

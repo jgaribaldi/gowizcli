@@ -39,6 +39,7 @@ func main() {
 		LightsDb:  db,
 		WizClient: wiz,
 		Luminance: luminance,
+		Location:  config.Luminance.Location,
 	}
 
 	p := tea.NewProgram(ui.NewModel(&c), tea.WithAltScreen())
