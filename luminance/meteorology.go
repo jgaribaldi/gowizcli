@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+type Meteorology interface {
+	GetCurrent(latitude, longitude float64) (*MeteorologyData, error)
+}
+
 type MeteorologyData struct {
 	CloudCover    float64
 	Precipitation float64
@@ -16,19 +20,19 @@ type MeteorologyData struct {
 	Elevation     float64
 }
 
-type Meteorology struct {
+type OpenMeteo struct {
 	baseUrl     string
 	timeoutSecs int
 }
 
-func NewMeteorology(baseUrl string, timeoutSecs int) *Meteorology {
-	return &Meteorology{
+func NewOpenMeteo(baseUrl string, timeoutSecs int) *OpenMeteo {
+	return &OpenMeteo{
 		baseUrl:     baseUrl,
 		timeoutSecs: timeoutSecs,
 	}
 }
 
-func (m Meteorology) GetCurrent(latitude, longitude float64) (*MeteorologyData, error) {
+func (m OpenMeteo) GetCurrent(latitude, longitude float64) (*MeteorologyData, error) {
 	q := url.Values{}
 	q.Set("latitude", fmt.Sprintf("%v", latitude))
 	q.Set("longitude", fmt.Sprintf("%v", longitude))

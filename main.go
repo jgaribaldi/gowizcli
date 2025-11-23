@@ -32,11 +32,11 @@ func main() {
 		config.Luminance.IpGeolocation.ApiKey,
 		config.Luminance.IpGeolocation.QueryTimeout,
 	)
-	meteorology := luminance.NewMeteorology(
+	meteorology := luminance.NewOpenMeteo(
 		config.Luminance.OpenMeteo.Url,
 		config.Luminance.OpenMeteo.QueryTimeout,
 	)
-	luminance := luminance.NewLuminance(astronomy, meteorology.GetCurrent)
+	luminance := luminance.NewLuminance(astronomy, meteorology)
 
 	c, err := client.NewClient(
 		db,
