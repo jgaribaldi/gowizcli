@@ -7,20 +7,20 @@ type Luminance struct {
 	meteorology Meteorology
 }
 
-func NewLuminance(astronomy Astronomy, meteorology Meteorology) *Luminance {
-	return &Luminance{
+func NewLuminance(astronomy Astronomy, meteorology Meteorology) Luminance {
+	return Luminance{
 		astronomy:   astronomy,
 		meteorology: meteorology,
 	}
 }
 
-func (o Luminance) GetCurrent(latitude, longitude float64) (float64, error) {
-	astronomyData, err := o.astronomy.GetSolarElevation(latitude, longitude)
+func (l Luminance) GetCurrent(latitude, longitude float64) (float64, error) {
+	astronomyData, err := l.astronomy.GetSolarElevation(latitude, longitude)
 	if err != nil {
 		return -1.0, err
 	}
 
-	meteorologyData, err := o.meteorology.GetCurrent(latitude, longitude)
+	meteorologyData, err := l.meteorology.GetCurrent(latitude, longitude)
 	if err != nil {
 		return -1.0, err
 	}

@@ -38,17 +38,9 @@ func main() {
 	)
 	luminance := luminance.NewLuminance(astronomy, meteorology)
 
-	c, err := client.NewClient(
-		db,
-		wiz,
-		config.Network.BroadcastAddress,
-		luminance.GetCurrent,
-	)
-	if err != nil {
-		panic(err)
-	}
+	c := client.NewClient(db, wiz, config.Network.BroadcastAddress, luminance)
 
-	p := tea.NewProgram(ui.NewModel(c), tea.WithAltScreen())
+	p := tea.NewProgram(ui.NewModel(&c), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}

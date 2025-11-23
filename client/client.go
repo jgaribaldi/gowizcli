@@ -3,29 +3,25 @@ package client
 import (
 	"fmt"
 	"gowizcli/db"
+	"gowizcli/luminance"
 	"gowizcli/wiz"
 	"strings"
 )
 
 type Client struct {
-	lightsDb     db.Storage
-	wizClient    wiz.Client
-	bcastAddr    string
-	getLuminance func(float64, float64) (float64, error)
+	lightsDb  db.Storage
+	wizClient wiz.Client
+	bcastAddr string
+	luminance luminance.Luminance
 }
 
-func NewClient(
-	lightsDb db.Storage,
-	wizClient wiz.Client,
-	bcastAddr string,
-	getLuminance func(float64, float64) (float64, error),
-) (*Client, error) {
-	return &Client{
-		lightsDb:     lightsDb,
-		wizClient:    wizClient,
-		bcastAddr:    bcastAddr,
-		getLuminance: getLuminance,
-	}, nil
+func NewClient(lightsDb db.Storage, wizClient wiz.Client, bcastAddr string, luminance luminance.Luminance) Client {
+	return Client{
+		lightsDb:  lightsDb,
+		wizClient: wizClient,
+		bcastAddr: bcastAddr,
+		luminance: luminance,
+	}
 }
 
 func (c Client) Execute(command Command) ([]wiz.Light, error) {
@@ -104,14 +100,14 @@ func (c Client) executeShow() ([]wiz.Light, error) {
 	}
 
 	var result []wiz.Light = make([]wiz.Light, len(lights))
-	for idx, l := range lights {
-		result[idx].Id = l.Id
-		result[idx].IpAddress = l.IpAddress
-		result[idx].MacAddress = l.MacAddress
+	for i, l := range lights {
+		result[i].Id = l.Id
+		result[i].IpAddress = l.IpAddress
+		result[i].MacAddress = l.MacAddress
 
 		light, err := c.wizClient.Status(&l)
 		if err == nil {
-			result[idx].IsOn = light.IsOn
+			result[i].IsOn = light.IsOn
 		}
 	}
 
