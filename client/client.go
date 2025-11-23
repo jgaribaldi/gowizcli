@@ -8,20 +8,16 @@ import (
 	"strings"
 )
 
-type Client struct {
-	lightsDb  db.Storage
-	wizClient wiz.Client
-	bcastAddr string
-	luminance luminance.Luminance
+type NetworkConfig struct {
+	BroadcastAddress string `yaml:"broadcastAddress"`
+	QueryTimeoutSec  int    `yaml:"queryTimeoutSec"`
 }
 
-func NewClient(lightsDb db.Storage, wizClient wiz.Client, bcastAddr string, luminance luminance.Luminance) Client {
-	return Client{
-		lightsDb:  lightsDb,
-		wizClient: wizClient,
-		bcastAddr: bcastAddr,
-		luminance: luminance,
-	}
+type Client struct {
+	LightsDb  db.Storage
+	WizClient wiz.Client
+	Luminance luminance.Luminance
+	NetConfig NetworkConfig
 }
 
 func (c Client) Execute(command Command) ([]wiz.Light, error) {
@@ -80,12 +76,12 @@ func (c Command) String() string {
 }
 
 func (c Client) executeDiscover() ([]wiz.Light, error) {
-	lights, err := c.wizClient.Discover(c.bcastAddr)
+	lights, err := c.WizClient.Discover(c.NetConfig.BroadcastAddress)
 	if err != nil {
 		return nil, err
 	}
 	for _, light := range lights {
-		_, err := c.lightsDb.Upsert(light)
+		_, err := c.LightsDb.Upsert(light)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +90,7 @@ func (c Client) executeDiscover() ([]wiz.Light, error) {
 }
 
 func (c Client) executeShow() ([]wiz.Light, error) {
-	lights, err := c.lightsDb.FindAll()
+	lights, err := c.LightsDb.FindAll()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +101,7 @@ func (c Client) executeShow() ([]wiz.Light, error) {
 		result[i].IpAddress = l.IpAddress
 		result[i].MacAddress = l.MacAddress
 
-		light, err := c.wizClient.Status(&l)
+		light, err := c.WizClient.Status(&l)
 		if err == nil {
 			result[i].IsOn = light.IsOn
 		}
@@ -115,17 +111,17 @@ func (c Client) executeShow() ([]wiz.Light, error) {
 }
 
 func (c Client) executeReset() ([]wiz.Light, error) {
-	c.lightsDb.EraseAll()
+	c.LightsDb.EraseAll()
 	return nil, nil
 }
 
 func (c Client) executeTurnOn(lightId string) ([]wiz.Light, error) {
-	light, err := c.lightsDb.FindById(lightId)
+	light, err := c.LightsDb.FindById(lightId)
 	if err != nil {
 		return nil, err
 	}
 
-	newLight, err := c.wizClient.TurnOn(light)
+	newLight, err := c.WizClient.TurnOn(light)
 	if err != nil {
 		return nil, err
 	}
@@ -136,12 +132,12 @@ func (c Client) executeTurnOn(lightId string) ([]wiz.Light, error) {
 }
 
 func (c Client) executeTurnOff(lightId string) ([]wiz.Light, error) {
-	light, err := c.lightsDb.FindById(lightId)
+	light, err := c.LightsDb.FindById(lightId)
 	if err != nil {
 		return nil, err
 	}
 
-	newLight, err := c.wizClient.TurnOff(light)
+	newLight, err := c.WizClient.TurnOff(light)
 	if err != nil {
 		return nil, err
 	}

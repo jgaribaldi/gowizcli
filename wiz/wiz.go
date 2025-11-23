@@ -22,13 +22,8 @@ type Light struct {
 }
 
 type Wiz struct {
-	bulbClient BulbClient
-}
-
-func NewWiz(bulbClient BulbClient) *Wiz {
-	return &Wiz{
-		bulbClient: bulbClient,
-	}
+	BulbClient  BulbClient
+	TimeoutSecs int
 }
 
 func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
@@ -40,7 +35,12 @@ func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 		return nil, err
 	}
 
-	queryResponse, err := w.bulbClient.Query(bcastAddr, mGetPilot)
+	query := BulbQuery{
+		Destination: bcastAddr,
+		Message:     mGetPilot,
+		TimeoutSecs: w.TimeoutSecs,
+	}
+	queryResponse, err := w.BulbClient.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (w Wiz) Discover(bcastAddr string) ([]Light, error) {
 			result = append(result, Light{
 				Id:         uuid.New().String(),
 				MacAddress: getPilotResult.Result.Mac,
-				IpAddress:  r.SourceIpAddress,
+				IpAddress:  r.Source,
 			})
 		}
 	}
@@ -74,7 +74,12 @@ func (w Wiz) TurnOn(light *Light) (*Light, error) {
 		return nil, err
 	}
 
-	_, err = w.bulbClient.Query(light.IpAddress, mTurnOn)
+	query := BulbQuery{
+		Destination: light.IpAddress,
+		Message:     mTurnOn,
+		TimeoutSecs: w.TimeoutSecs,
+	}
+	_, err = w.BulbClient.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +97,12 @@ func (w Wiz) TurnOff(light *Light) (*Light, error) {
 		return nil, err
 	}
 
-	_, err = w.bulbClient.Query(light.IpAddress, mTurnOff)
+	query := BulbQuery{
+		Destination: light.IpAddress,
+		Message:     mTurnOff,
+		TimeoutSecs: w.TimeoutSecs,
+	}
+	_, err = w.BulbClient.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +119,12 @@ func (w Wiz) Status(light *Light) (*Light, error) {
 		return nil, err
 	}
 
-	queryResponse, err := w.bulbClient.Query(light.IpAddress, mGetPilot)
+	query := BulbQuery{
+		Destination: light.IpAddress,
+		Message:     mGetPilot,
+		TimeoutSecs: w.TimeoutSecs,
+	}
+	queryResponse, err := w.BulbClient.Query(query)
 	if err != nil {
 		return nil, err
 	}

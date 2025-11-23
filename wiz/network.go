@@ -7,38 +7,37 @@ import (
 )
 
 type BulbClient interface {
-	Query(ipAddress string, message []byte) ([]BulbResponse, error)
+	Query(bulbQuery BulbQuery) ([]BulbResponse, error)
+}
+
+type BulbQuery struct {
+	Destination string
+	Message     []byte
+	TimeoutSecs int
 }
 
 type BulbResponse struct {
-	SourceIpAddress string
-	Response        []byte
+	Source   string
+	Response []byte
 }
 
 type UDPClient struct {
-	queryTimeoutSecs int
 }
 
-func NewUDPClient(queryTimeoutSecs int) (*UDPClient, error) {
-	return &UDPClient{
-		queryTimeoutSecs: queryTimeoutSecs,
-	}, nil
-}
-
-func (c UDPClient) Query(ipAddress string, message []byte) ([]BulbResponse, error) {
+func (c UDPClient) Query(bulbQuery BulbQuery) ([]BulbResponse, error) {
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
 
-	address := fmt.Sprintf("%s:%s", ipAddress, bulbPort)
+	address := fmt.Sprintf("%s:%s", bulbQuery.Destination, bulbPort)
 	resolved, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = conn.WriteTo(message, resolved)
+	_, err = conn.WriteTo(bulbQuery.Message, resolved)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +45,7 @@ func (c UDPClient) Query(ipAddress string, message []byte) ([]BulbResponse, erro
 	var result []BulbResponse = make([]BulbResponse, 0)
 	var buffer []byte = make([]byte, 1024)
 	for {
-		timeout := time.Now().Add(time.Duration(c.queryTimeoutSecs) * time.Second)
+		timeout := time.Now().Add(time.Duration(bulbQuery.TimeoutSecs) * time.Second)
 		err = conn.SetReadDeadline(timeout)
 		if err != nil {
 			return nil, err
@@ -61,8 +60,8 @@ func (c UDPClient) Query(ipAddress string, message []byte) ([]BulbResponse, erro
 		}
 
 		result = append(result, BulbResponse{
-			SourceIpAddress: clientAddr.(*net.UDPAddr).IP.String(),
-			Response:        buffer[:n],
+			Source:   clientAddr.(*net.UDPAddr).IP.String(),
+			Response: buffer[:n],
 		})
 	}
 

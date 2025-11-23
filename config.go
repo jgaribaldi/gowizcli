@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gowizcli/client"
 	"gowizcli/luminance"
 	"os"
 
@@ -17,10 +18,7 @@ type Config struct {
 			Longitude float64 `yaml:"longitude"`
 		} `yaml:"location"`
 	} `yaml:"luminance"`
-	Network struct {
-		BroadcastAddress string `yaml:"broadcastAddress"`
-		QueryTimeoutSec  int    `yaml:"queryTimeoutSec"`
-	} `yaml:"network"`
+	Network  client.NetworkConfig `yaml:"network"`
 	Database struct {
 		File string `yaml:"file"`
 	} `yaml:"database"`

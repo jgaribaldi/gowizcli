@@ -21,21 +21,26 @@ func main() {
 		panic(err)
 	}
 
-	bulbClient, err := wiz.NewUDPClient(config.Network.QueryTimeoutSec)
-	if err != nil {
-		panic(err)
+	wiz := wiz.Wiz{
+		BulbClient:  wiz.UDPClient{},
+		TimeoutSecs: config.Network.QueryTimeoutSec,
 	}
 
-	wiz := wiz.NewWiz(bulbClient)
-	astronomy := luminance.IpGeolocation{
-		Config: config.Luminance.IpGeolocation,
+	luminance := luminance.Luminance{
+		Astronomy: luminance.IpGeolocation{
+			Config: config.Luminance.IpGeolocation,
+		},
+		Meteorology: luminance.OpenMeteo{
+			Config: config.Luminance.OpenMeteo,
+		},
 	}
-	meteorology := luminance.OpenMeteo{
-		Config: config.Luminance.OpenMeteo,
-	}
-	luminance := luminance.NewLuminance(astronomy, meteorology)
 
-	c := client.NewClient(db, wiz, config.Network.BroadcastAddress, luminance)
+	c := client.Client{
+		LightsDb:  db,
+		WizClient: wiz,
+		Luminance: luminance,
+		NetConfig: config.Network,
+	}
 
 	p := tea.NewProgram(ui.NewModel(&c), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
