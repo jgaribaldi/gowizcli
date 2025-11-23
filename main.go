@@ -30,10 +30,9 @@ func main() {
 	astronomy := luminance.IpGeolocation{
 		Config: config.Luminance.IpGeolocation,
 	}
-	meteorology := luminance.NewOpenMeteo(
-		config.Luminance.OpenMeteo.Url,
-		config.Luminance.OpenMeteo.QueryTimeout,
-	)
+	meteorology := luminance.OpenMeteo{
+		Config: config.Luminance.OpenMeteo,
+	}
 	luminance := luminance.NewLuminance(astronomy, meteorology)
 
 	c := client.NewClient(db, wiz, config.Network.BroadcastAddress, luminance)

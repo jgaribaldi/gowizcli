@@ -11,11 +11,8 @@ import (
 type Config struct {
 	Luminance struct {
 		IpGeolocation luminance.IpGeolocationConfig `yaml:"ipGeolocation"`
-		OpenMeteo     struct {
-			Url          string `yaml:"url"`
-			QueryTimeout int    `yaml:"queryTimeout"`
-		} `yaml:"openMeteo"`
-		Location struct {
+		OpenMeteo     luminance.OpenMeteoConfig     `yaml:"openMeteo"`
+		Location      struct {
 			Latitude  float64 `yaml:"latitude"`
 			Longitude float64 `yaml:"longitude"`
 		} `yaml:"location"`

@@ -20,16 +20,13 @@ type MeteorologyData struct {
 	Elevation     float64
 }
 
-type OpenMeteo struct {
-	baseUrl     string
-	timeoutSecs int
+type OpenMeteoConfig struct {
+	Url          string `yaml:"url"`
+	QueryTimeout int    `yaml:"queryTimeout"`
 }
 
-func NewOpenMeteo(baseUrl string, timeoutSecs int) *OpenMeteo {
-	return &OpenMeteo{
-		baseUrl:     baseUrl,
-		timeoutSecs: timeoutSecs,
-	}
+type OpenMeteo struct {
+	Config OpenMeteoConfig
 }
 
 func (m OpenMeteo) GetCurrent(latitude, longitude float64) (*MeteorologyData, error) {
@@ -38,14 +35,14 @@ func (m OpenMeteo) GetCurrent(latitude, longitude float64) (*MeteorologyData, er
 	q.Set("longitude", fmt.Sprintf("%v", longitude))
 	q.Set("current", "cloud_cover,precipitation,visibility,weather_code")
 
-	url := fmt.Sprintf("%s?%s", m.baseUrl, q.Encode())
+	url := fmt.Sprintf("%s?%s", m.Config.Url, q.Encode())
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("accept", "application/json")
 
-	client := http.Client{Timeout: time.Duration(m.timeoutSecs) * time.Second}
+	client := http.Client{Timeout: time.Duration(m.Config.QueryTimeout) * time.Second}
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
