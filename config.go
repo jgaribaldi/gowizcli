@@ -14,8 +14,8 @@ type Config struct {
 	Luminance struct {
 		IpGeolocation luminance.IpGeolocationConfig `yaml:"ipGeolocation"`
 		OpenMeteo     luminance.OpenMeteoConfig     `yaml:"openMeteo"`
-		Location      client.Location               `yaml:"location"`
 	} `yaml:"luminance"`
+	Location client.Location   `yaml:"location"`
 	Network  wiz.NetworkConfig `yaml:"network"`
 	Database struct {
 		File string `yaml:"file"`

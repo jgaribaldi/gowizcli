@@ -6,9 +6,10 @@ luminance:
   openMeteo:
     url: https://api.open-meteo.com/v1/forecast
     queryTimeout: 10
-  location:
-    latitude: -34.60734
-    longitude: -58.44329
+
+location:
+  latitude: -34.60734
+  longitude: -58.44329
 
 network:
   broadcastAddress: 192.168.1.255
