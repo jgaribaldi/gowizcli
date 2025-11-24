@@ -163,7 +163,7 @@ func (m Model) handleCmdFinish(cmd CmdDone) Model {
 func merge(existing []wiz.Light, incoming []wiz.Light) []wiz.Light {
 	var existingIds = make(map[string]wiz.Light, len(existing))
 	for _, l := range existing {
-		existingIds[l.Id] = l
+		existingIds[l.IpAddress] = l
 	}
 
 	var result = make([]wiz.Light, 0, len(existing)+len(incoming))
@@ -171,11 +171,11 @@ func merge(existing []wiz.Light, incoming []wiz.Light) []wiz.Light {
 
 	for _, l := range incoming {
 		result = append(result, l)
-		seen[l.Id] = struct{}{}
+		seen[l.IpAddress] = struct{}{}
 	}
 
 	for _, l := range existing {
-		if _, ok := seen[l.Id]; !ok {
+		if _, ok := seen[l.IpAddress]; !ok {
 			result = append(result, l)
 		}
 	}
