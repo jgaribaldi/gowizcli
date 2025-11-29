@@ -27,34 +27,6 @@ type Functions interface {
 }
 
 func (c Client) Discover() ([]wiz.Light, error) {
-	return c.executeDiscover()
-}
-
-func (c Client) ShowAll() ([]wiz.Light, error) {
-	return c.executeShow()
-}
-
-func (c Client) TurnOn(lightId string) (*wiz.Light, error) {
-	result, err := c.executeTurnOn(lightId)
-	if err != nil {
-		return nil, err
-	}
-	return &result[0], nil
-}
-
-func (c Client) TurnOff(lightId string) (*wiz.Light, error) {
-	result, err := c.executeTurnOff(lightId)
-	if err != nil {
-		return nil, err
-	}
-	return &result[0], nil
-}
-
-func (c Client) EraseAll() {
-	c.executeReset()
-}
-
-func (c Client) executeDiscover() ([]wiz.Light, error) {
 	lights, err := c.WizClient.Discover()
 	if err != nil {
 		return nil, err
@@ -68,7 +40,7 @@ func (c Client) executeDiscover() ([]wiz.Light, error) {
 	return lights, nil
 }
 
-func (c Client) executeShow() ([]wiz.Light, error) {
+func (c Client) ShowAll() ([]wiz.Light, error) {
 	lights, err := c.LightsDb.FindAll()
 	if err != nil {
 		return nil, err
@@ -89,12 +61,7 @@ func (c Client) executeShow() ([]wiz.Light, error) {
 	return result, nil
 }
 
-func (c Client) executeReset() ([]wiz.Light, error) {
-	c.LightsDb.EraseAll()
-	return nil, nil
-}
-
-func (c Client) executeTurnOn(lightId string) ([]wiz.Light, error) {
+func (c Client) TurnOn(lightId string) (*wiz.Light, error) {
 	light, err := c.LightsDb.FindById(lightId)
 	if err != nil {
 		return nil, err
@@ -105,12 +72,10 @@ func (c Client) executeTurnOn(lightId string) ([]wiz.Light, error) {
 		return nil, err
 	}
 
-	var result []wiz.Light = make([]wiz.Light, 1)
-	result[0] = *newLight
-	return result, nil
+	return newLight, nil
 }
 
-func (c Client) executeTurnOff(lightId string) ([]wiz.Light, error) {
+func (c Client) TurnOff(lightId string) (*wiz.Light, error) {
 	light, err := c.LightsDb.FindById(lightId)
 	if err != nil {
 		return nil, err
@@ -121,7 +86,9 @@ func (c Client) executeTurnOff(lightId string) ([]wiz.Light, error) {
 		return nil, err
 	}
 
-	var result []wiz.Light = make([]wiz.Light, 1)
-	result[0] = *newLight
-	return result, nil
+	return newLight, nil
+}
+
+func (c Client) EraseAll() {
+	c.LightsDb.EraseAll()
 }
