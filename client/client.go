@@ -1,11 +1,9 @@
 package client
 
 import (
-	"fmt"
 	"gowizcli/db"
 	"gowizcli/luminance"
 	"gowizcli/wiz"
-	"strings"
 )
 
 type Location struct {
@@ -20,59 +18,40 @@ type Client struct {
 	Location  Location
 }
 
-func (c Client) Execute(command Command) ([]wiz.Light, error) {
-	switch command.CommandType {
-
-	case Discover:
-		return c.executeDiscover()
-
-	case Show:
-		return c.executeShow()
-
-	case Reset:
-		return c.executeReset()
-
-	case TurnOn:
-		return c.executeTurnOn(command.Parameters[0])
-
-	case TurnOff:
-		return c.executeTurnOff(command.Parameters[0])
-
-	default:
-		return nil, fmt.Errorf("unknown command %s", command)
-	}
+type Functions interface {
+	Discover() ([]wiz.Light, error)
+	ShowAll() ([]wiz.Light, error)
+	TurnOn(lightId string) (*wiz.Light, error)
+	TurnOff(lightId string) (*wiz.Light, error)
+	EraseAll()
 }
 
-type CommandType int
-
-const (
-	Discover CommandType = iota
-	Show
-	Reset
-	TurnOn
-	TurnOff
-)
-
-type Command struct {
-	CommandType CommandType
-	Parameters  []string
+func (c Client) Discover() ([]wiz.Light, error) {
+	return c.executeDiscover()
 }
 
-func (c Command) String() string {
-	params := strings.Join(c.Parameters, ", ")
-	switch c.CommandType {
-	case Discover:
-		return "Discover " + params
-	case Show:
-		return "Show " + params
-	case Reset:
-		return "Reset " + params
-	case TurnOn:
-		return "Turn On " + params
-	case TurnOff:
-		return "Turn Off " + params
+func (c Client) ShowAll() ([]wiz.Light, error) {
+	return c.executeShow()
+}
+
+func (c Client) TurnOn(lightId string) (*wiz.Light, error) {
+	result, err := c.executeTurnOn(lightId)
+	if err != nil {
+		return nil, err
 	}
-	return ""
+	return &result[0], nil
+}
+
+func (c Client) TurnOff(lightId string) (*wiz.Light, error) {
+	result, err := c.executeTurnOff(lightId)
+	if err != nil {
+		return nil, err
+	}
+	return &result[0], nil
+}
+
+func (c Client) EraseAll() {
+	c.executeReset()
 }
 
 func (c Client) executeDiscover() ([]wiz.Light, error) {

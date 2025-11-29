@@ -21,7 +21,7 @@ type Model struct {
 	cmdRunner  CmdRunner
 }
 
-func NewModel(client *client.Client) Model {
+func NewModel(client client.Functions) Model {
 	columns := []table.Column{
 		{Title: "IP Address", Width: 20},
 		{Title: "MAC Address", Width: 20},

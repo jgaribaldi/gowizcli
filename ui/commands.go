@@ -9,12 +9,12 @@ import (
 )
 
 type CmdRunner struct {
-	client        *client.Client
+	client        client.Functions
 	lastCmdStatus common.CmdStatus
 	lastCmdErr    error
 }
 
-func NewCmdRunner(client *client.Client) CmdRunner {
+func NewCmdRunner(client client.Functions) CmdRunner {
 	return CmdRunner{
 		client:        client,
 		lastCmdStatus: *common.NewCmdStatus(),
@@ -54,29 +54,25 @@ type Command interface {
 }
 
 type CmdDiscover struct {
-	client *client.Client
+	client client.Functions
 }
 
-func NewCmdDiscover(client *client.Client) CmdDiscover {
+func NewCmdDiscover(client client.Functions) CmdDiscover {
 	return CmdDiscover{
 		client: client,
 	}
 }
 
 func (c CmdDiscover) Run() ([]wiz.Light, error) {
-	cmd := client.Command{
-		CommandType: client.Discover,
-		Parameters:  []string{},
-	}
-	return c.client.Execute(cmd)
+	return c.client.Discover()
 }
 
 type CmdSwitch struct {
-	client *client.Client
+	client client.Functions
 	light  wiz.Light
 }
 
-func NewCmdSwitch(client *client.Client, light wiz.Light) CmdSwitch {
+func NewCmdSwitch(client client.Functions, light wiz.Light) CmdSwitch {
 	return CmdSwitch{
 		client: client,
 		light:  light,
@@ -85,57 +81,45 @@ func NewCmdSwitch(client *client.Client, light wiz.Light) CmdSwitch {
 
 func (c CmdSwitch) Run() ([]wiz.Light, error) {
 	if c.light.IsOn != nil && *c.light.IsOn {
-		cmd := client.Command{
-			CommandType: client.TurnOff,
-			Parameters: []string{
-				c.light.Id,
-			},
+		result, err := c.client.TurnOff(c.light.Id)
+		if err != nil {
+			return nil, err
 		}
-		return c.client.Execute(cmd)
+		return []wiz.Light{*result}, nil
 	}
 
-	cmd := client.Command{
-		CommandType: client.TurnOn,
-		Parameters: []string{
-			c.light.Id,
-		},
+	result, err := c.client.TurnOn(c.light.Id)
+	if err != nil {
+		return nil, err
 	}
-	return c.client.Execute(cmd)
+	return []wiz.Light{*result}, nil
 }
 
 type CmdEraseAll struct {
-	client *client.Client
+	client client.Functions
 }
 
-func NewCmdEraseAll(client *client.Client) CmdEraseAll {
+func NewCmdEraseAll(client client.Functions) CmdEraseAll {
 	return CmdEraseAll{
 		client: client,
 	}
 }
 
 func (c CmdEraseAll) Run() ([]wiz.Light, error) {
-	cmd := client.Command{
-		CommandType: client.Reset,
-		Parameters:  []string{},
-	}
-
-	return c.client.Execute(cmd)
+	c.client.EraseAll()
+	return nil, nil
 }
 
 type CmdRefresh struct {
-	client *client.Client
+	client client.Functions
 }
 
-func NewCmdRefresh(client *client.Client) CmdRefresh {
+func NewCmdRefresh(client client.Functions) CmdRefresh {
 	return CmdRefresh{
 		client: client,
 	}
 }
 
 func (c CmdRefresh) Run() ([]wiz.Light, error) {
-	cmd := client.Command{
-		CommandType: client.Show,
-		Parameters:  []string{},
-	}
-	return c.client.Execute(cmd)
+	return c.client.ShowAll()
 }

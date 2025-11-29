@@ -42,7 +42,7 @@ func main() {
 		Location:  config.Location,
 	}
 
-	p := tea.NewProgram(ui.NewModel(&c), tea.WithAltScreen())
+	p := tea.NewProgram(ui.NewModel(c), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error %v\n", err)
 	}
