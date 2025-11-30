@@ -26,6 +26,7 @@ func NewModel(client client.Functions) Model {
 		{Title: "IP Address", Width: 20},
 		{Title: "MAC Address", Width: 20},
 		{Title: "Status", Width: 10},
+		{Title: "Tags", Width: 10},
 	}
 
 	t := table.New(
@@ -183,18 +184,21 @@ func merge(existing []wiz.Light, incoming []wiz.Light) []wiz.Light {
 }
 
 func lightToRow(l wiz.Light) table.Row {
+	tagLine := strings.Join(l.Tags, ", ")
 	if l.IsOn != nil {
 		if *l.IsOn {
 			return table.Row{
 				l.IpAddress,
 				parseMacAddress(l.MacAddress),
 				"On",
+				tagLine,
 			}
 		} else {
 			return table.Row{
 				l.IpAddress,
 				parseMacAddress(l.MacAddress),
 				"Off",
+				tagLine,
 			}
 		}
 	} else {
@@ -202,6 +206,7 @@ func lightToRow(l wiz.Light) table.Row {
 			l.IpAddress,
 			parseMacAddress(l.MacAddress),
 			"Unknown",
+			tagLine,
 		}
 	}
 }
