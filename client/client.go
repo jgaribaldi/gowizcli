@@ -51,6 +51,7 @@ func (c Client) ShowAll() ([]wiz.Light, error) {
 		result[i].Id = l.Id
 		result[i].IpAddress = l.IpAddress
 		result[i].MacAddress = l.MacAddress
+		result[i].Tags = l.Tags
 
 		light, err := c.WizClient.Status(&l)
 		if err == nil {

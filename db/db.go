@@ -6,6 +6,7 @@ import (
 	"gowizcli/wiz"
 	"time"
 
+	"gorm.io/datatypes"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -16,6 +17,9 @@ type Storage interface {
 	FindAll() ([]wiz.Light, error)
 	EraseAll()
 	FindById(id string) (*wiz.Light, error)
+	AddTags(bulbs []wiz.Light, tags []string) ([]wiz.Light, error)
+	RemoveTags(bulbs []wiz.Light, tags []string) ([]wiz.Light, error)
+	FindByTags(tags []string) ([]wiz.Light, error)
 }
 
 type SQLiteDB struct {
@@ -56,21 +60,20 @@ func (s SQLiteDB) Upsert(bulb wiz.Light) (*wiz.Light, error) {
 
 func (s SQLiteDB) FindAll() ([]wiz.Light, error) {
 	var storedWizLights []storedWizLight
-	storedWizLights = make([]storedWizLight, 0)
-	queryResult := s.db.Find(&storedWizLights)
 
+	queryResult := s.db.Find(&storedWizLights)
 	if queryResult.Error != nil {
 		return nil, queryResult.Error
 	}
 
-	var result []wiz.Light
-	result = make([]wiz.Light, 0)
-	for _, l := range storedWizLights {
-		result = append(result, wiz.Light{
+	result := make([]wiz.Light, len(storedWizLights))
+	for i, l := range storedWizLights {
+		result[i] = wiz.Light{
 			Id:         l.ID,
 			IpAddress:  l.IpAddress,
 			MacAddress: l.MacAddress,
-		})
+			Tags:       l.Tags.Data(),
+		}
 	}
 	return result, nil
 }
@@ -95,7 +98,117 @@ func (s SQLiteDB) FindById(id string) (*wiz.Light, error) {
 		Id:         storedWizLight.ID,
 		IpAddress:  storedWizLight.IpAddress,
 		MacAddress: storedWizLight.MacAddress,
+		Tags:       storedWizLight.Tags.Data(),
 	}, nil
+}
+
+func (s SQLiteDB) AddTags(bulbs []wiz.Light, tags []string) ([]wiz.Light, error) {
+	result := make([]wiz.Light, len(bulbs))
+
+	for i, b := range bulbs {
+		newTags := add(b.Tags, tags)
+
+		queryResult := s.db.
+			Model(&storedWizLight{}).
+			Where("id = ?", b.Id).
+			Update("tags", datatypes.NewJSONType(newTags))
+		if queryResult.Error != nil {
+			return nil, queryResult.Error
+		}
+
+		result[i] = wiz.Light{
+			Id:         b.Id,
+			IpAddress:  b.IpAddress,
+			MacAddress: b.MacAddress,
+			IsOn:       b.IsOn,
+			Tags:       newTags,
+		}
+	}
+
+	return result, nil
+}
+
+func add(source []string, toAdd []string) []string {
+	existingMap := make(map[string]struct{})
+	for _, e := range source {
+		existingMap[e] = struct{}{}
+	}
+
+	result := make([]string, 0)
+	result = append(result, source...)
+	for _, e := range toAdd {
+		if _, exists := existingMap[e]; !exists {
+			result = append(result, e)
+		}
+	}
+
+	return result
+}
+
+func (s SQLiteDB) RemoveTags(bulbs []wiz.Light, tags []string) ([]wiz.Light, error) {
+	result := make([]wiz.Light, len(bulbs))
+
+	for i, b := range bulbs {
+		newTags := filter(b.Tags, tags)
+
+		queryResult := s.db.
+			Model(&storedWizLight{}).
+			Where("id = ?", b.Id).
+			Update("tags", datatypes.NewJSONType(newTags))
+		if queryResult.Error != nil {
+			return nil, queryResult.Error
+		}
+
+		result[i] = wiz.Light{
+			Id:         b.Id,
+			IpAddress:  b.IpAddress,
+			MacAddress: b.MacAddress,
+			IsOn:       b.IsOn,
+			Tags:       newTags,
+		}
+	}
+
+	return result, nil
+}
+
+func filter(source []string, toRemove []string) []string {
+	removeMap := make(map[string]struct{})
+	for _, e := range toRemove {
+		removeMap[e] = struct{}{}
+	}
+
+	result := make([]string, 0)
+	for _, e := range source {
+		if _, exists := removeMap[e]; !exists {
+			result = append(result, e)
+		}
+	}
+	return result
+}
+
+func (s SQLiteDB) FindByTags(tags []string) ([]wiz.Light, error) {
+	var storedWizLights []storedWizLight
+
+	tx := s.db.Model(&storedWizLight{})
+	for _, t := range tags {
+		tx = tx.Where("exists (select 1 from json_each(tags) where value = ?)", t)
+	}
+
+	if err := tx.Find(&storedWizLights).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]wiz.Light, len(storedWizLights))
+	for i, s := range storedWizLights {
+		result[i] = wiz.Light{
+			Id:         s.ID,
+			IpAddress:  s.IpAddress,
+			MacAddress: s.MacAddress,
+			Tags:       s.Tags.Data(),
+		}
+	}
+
+	return result, nil
 }
 
 type storedWizLight struct {
@@ -103,6 +216,7 @@ type storedWizLight struct {
 	ID         string
 	MacAddress string `gorm:"uniqueIndex"`
 	IpAddress  string `gorm:"uniqueIndex"`
+	Tags       datatypes.JSONType[[]string]
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }

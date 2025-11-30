@@ -19,6 +19,7 @@ type Light struct {
 	MacAddress string
 	IpAddress  string
 	IsOn       *bool
+	Tags       []string
 }
 
 type Wiz struct {
