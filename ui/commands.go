@@ -2,28 +2,55 @@ package ui
 
 import (
 	"gowizcli/client"
-	"gowizcli/ui/common"
 	"gowizcli/wiz"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type state int
+
+const (
+	Ready state = iota
+	Running
+	Done
+)
+
+type CmdStatus struct {
+	State state
+}
+
+func NewCmdStatus() *CmdStatus {
+	return &CmdStatus{
+		State: Ready,
+	}
+}
+
+func (c CmdStatus) Start() CmdStatus {
+	c.State = Running
+	return c
+}
+
+func (c CmdStatus) Finish() CmdStatus {
+	c.State = Done
+	return c
+}
+
 type CmdRunner struct {
 	client        client.Functions
-	lastCmdStatus common.CmdStatus
+	lastCmdStatus CmdStatus
 	lastCmdErr    error
 }
 
 func NewCmdRunner(client client.Functions) CmdRunner {
 	return CmdRunner{
 		client:        client,
-		lastCmdStatus: *common.NewCmdStatus(),
+		lastCmdStatus: *NewCmdStatus(),
 		lastCmdErr:    nil,
 	}
 }
 
 func (c CmdRunner) Run(cmd Command) (CmdRunner, tea.Cmd) {
-	if c.lastCmdStatus.State == common.Ready || c.lastCmdStatus.State == common.Done {
+	if c.lastCmdStatus.State == Ready || c.lastCmdStatus.State == Done {
 		c.lastCmdStatus = c.lastCmdStatus.Start()
 		return c, func() tea.Msg {
 			result, err := cmd.Run()

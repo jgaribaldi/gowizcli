@@ -2,7 +2,6 @@ package ui
 
 import (
 	"gowizcli/client"
-	"gowizcli/ui/common"
 	"gowizcli/wiz"
 	"strings"
 
@@ -37,7 +36,7 @@ func NewModel(client client.Functions) Model {
 
 	t.SetStyles(tableStyles())
 
-	initialStatus := *common.NewCmdStatus()
+	initialStatus := *NewCmdStatus()
 	initialStatus = initialStatus.Start()
 
 	return Model{
@@ -95,7 +94,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.cmdRunner.lastCmdStatus.State == common.Running {
+	if m.cmdRunner.lastCmdStatus.State == Running {
 		message := boxStyle.Render("Running command...")
 		return lipgloss.Place(m.dimensions.window.width, m.dimensions.window.height, lipgloss.Center, lipgloss.Center, message)
 	}
