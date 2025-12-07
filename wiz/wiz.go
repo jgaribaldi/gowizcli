@@ -7,6 +7,44 @@ import (
 	"github.com/google/uuid"
 )
 
+type Scene int
+
+const (
+	Ocean        Scene = 1
+	Romance      Scene = 2
+	Sunset       Scene = 3
+	Party        Scene = 4
+	Fireplace    Scene = 5
+	Cozy         Scene = 6
+	Forest       Scene = 7
+	PastelColors Scene = 8
+	WakeUp       Scene = 9
+	Bedtime      Scene = 10
+	WarmWhite    Scene = 11
+	Daylight     Scene = 12
+	CoolWhite    Scene = 13
+	NightLight   Scene = 14
+	Focus        Scene = 15
+	Relax        Scene = 16
+	TrueColors   Scene = 17
+	TVTime       Scene = 18
+	PlantGrowth  Scene = 19
+	Spring       Scene = 20
+	Summer       Scene = 21
+	Fall         Scene = 22
+	DeepDive     Scene = 23
+	Jungle       Scene = 24
+	Mojito       Scene = 25
+	Club         Scene = 26
+	Christmas    Scene = 27
+	Halloween    Scene = 28
+	Candlelight  Scene = 29
+	GoldenWhite  Scene = 30
+	Pulse        Scene = 31
+	Steampunk    Scene = 32
+	Rhythm       Scene = 1000
+)
+
 type Client interface {
 	Discover() ([]Light, error)
 	TurnOn(light *Light) (*Light, error)
