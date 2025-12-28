@@ -50,6 +50,7 @@ type Client interface {
 	TurnOn(light *Light) (*Light, error)
 	TurnOff(light *Light) (*Light, error)
 	Status(light *Light) (*Light, error)
+	SetScene(light *Light, scene Scene) (*Light, error)
 }
 
 type Light struct {
