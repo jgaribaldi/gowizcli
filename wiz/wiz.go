@@ -185,3 +185,26 @@ func (w Wiz) Status(light *Light) (*Light, error) {
 
 	return nil, fmt.Errorf("device on address %s did not respond", light.IpAddress)
 }
+
+func (w Wiz) SetScene(light *Light, scene Scene) (*Light, error) {
+	setScene := NewRequestBuilder().
+		WithMethod("setPilot").
+		WithScene(scene).
+		Build()
+	mSetScene, err := json.Marshal(setScene)
+	if err != nil {
+		return nil, err
+	}
+
+	query := BulbQuery{
+		Destination: light.IpAddress,
+		Message:     mSetScene,
+		TimeoutSecs: w.NetConfig.QueryTimeoutSec,
+	}
+	_, err = w.BulbClient.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return w.Status(light)
+}
